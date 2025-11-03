@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { Users, Check, Clock } from 'lucide-react';
+import { Users, Check, Clock, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 type Team = {
   id: string;
@@ -64,10 +65,6 @@ const RequestToJoinButton = ({ teamId }: { teamId: string }) => {
     return <Button disabled className="w-full"><Clock className="mr-2 h-4 w-4"/>Request Pending</Button>;
   }
 
-  // A more complex check would be needed to see if the user is ALREADY on the roster
-  // For now, we assume if a request existed and is gone, it was approved.
-  // A better implementation would check the team's roster array.
-
   return (
     <Button onClick={handleRequest} disabled={isSubmitting} className="w-full">
       {isSubmitting ? 'Sending...' : 'Request to Join'}
@@ -86,20 +83,30 @@ const TeamCard = ({ team }: { team: Team }) => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center gap-4">
-        {teamImage && <Image src={teamImage.imageUrl} alt={team.name} width={60} height={60} className="rounded-md" data-ai-hint={teamImage.imageHint} />}
-        <div>
-          <CardTitle className="font-headline">{team.name}</CardTitle>
-          <CardDescription className="flex items-center gap-2">
-            <Users className="h-4 w-4" /> {team.roster?.length || 0} players
-          </CardDescription>
-        </div>
+      <CardHeader>
+        <Link href={`/teams/${team.id}`} className='hover:opacity-80 transition-opacity'>
+          <div className="flex flex-row items-center gap-4">
+            {teamImage && <Image src={teamImage.imageUrl} alt={team.name} width={60} height={60} className="rounded-md" data-ai-hint={teamImage.imageHint} />}
+            <div>
+              <CardTitle className="font-headline">{team.name}</CardTitle>
+              <CardDescription className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> {team.roster?.length || 0} players
+              </CardDescription>
+            </div>
+          </div>
+        </Link>
       </CardHeader>
-      <CardFooter>
+      <CardFooter className='flex gap-2'>
+         <Button asChild variant="secondary" className='flex-1'>
+            <Link href={`/teams/${team.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                View
+            </Link>
+         </Button>
         {isCoach ? (
-             <Button disabled className="w-full" variant="outline">You are the coach</Button>
+             <Button disabled className="flex-1" variant="outline">You are the coach</Button>
         ) : isPlayer ? (
-            <Button disabled className="w-full"><Check className="mr-2 h-4 w-4" />Joined</Button>
+            <Button disabled className="flex-1"><Check className="mr-2 h-4 w-4" />Joined</Button>
         ) : (
             <RequestToJoinButton teamId={team.id} />
         )}

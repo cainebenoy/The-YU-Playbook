@@ -7,11 +7,13 @@ import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
+import Link from 'next/link';
 
 type TeamScore = {
   name: string;
   score: number;
   imageId: string;
+  id: string; // Team ID
 };
 
 type LiveScore = {
@@ -37,23 +39,23 @@ const LiveScoreCard = ({ game }: { game: LiveScore }) => {
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <Link href={`/teams/${game.teamA.id}`} className="flex items-center gap-4 hover:underline">
               <Avatar>
                 {teamAImage && <AvatarImage src={teamAImage.imageUrl} alt={game.teamA.name} data-ai-hint={teamAImage.imageHint}/>}
                 <AvatarFallback>{game.teamA.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="font-semibold">{game.teamA.name}</span>
-            </div>
+            </Link>
             <span className="text-2xl font-bold">{game.teamA.score}</span>
           </div>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <Link href={`/teams/${game.teamB.id}`} className="flex items-center gap-4 hover:underline">
               <Avatar>
                 {teamBImage && <AvatarImage src={teamBImage.imageUrl} alt={game.teamB.name} data-ai-hint={teamBImage.imageHint}/>}
                 <AvatarFallback>{game.teamB.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="font-semibold">{game.teamB.name}</span>
-            </div>
+            </Link>
             <span className="text-2xl font-bold">{game.teamB.score}</span>
           </div>
         </div>

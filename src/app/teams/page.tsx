@@ -4,6 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { useUser, useFirestore, useCollection, addDocumentNonBlocking, updateDocumentNonBlocking, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck } from "lucide-react";
+import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck, Eye } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
 import { collection, query, where, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -256,19 +257,30 @@ export default function TeamsPage() {
               const teamImage = placeholderImages.placeholderImages.find(p => p.id === team.imageId);
               return (
               <Card key={team.id}>
-                <CardHeader className="flex flex-row items-center gap-4">
-                  {teamImage && (
-                    <Image src={teamImage.imageUrl} alt={team.name} width={60} height={60} className="rounded-md" data-ai-hint={teamImage.imageHint} />
-                  )}
-                  <div>
-                    <CardTitle className="font-headline">{team.name}</CardTitle>
-                    <CardDescription>{team.roster?.length || 0} players</CardDescription>
-                  </div>
+                <CardHeader>
+                    <Link href={`/teams/${team.id}`} className='hover:opacity-80 transition-opacity'>
+                        <div className="flex flex-row items-center gap-4">
+                        {teamImage && (
+                            <Image src={teamImage.imageUrl} alt={team.name} width={60} height={60} className="rounded-md" data-ai-hint={teamImage.imageHint} />
+                        )}
+                        <div>
+                            <CardTitle className="font-headline">{team.name}</CardTitle>
+                            <CardDescription>{team.roster?.length || 0} players</CardDescription>
+                        </div>
+                        </div>
+                    </Link>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
                     <Button onClick={() => { setSelectedTeam(team); setIsRosterDialogOpen(true); }} className="w-full">Manage Roster</Button>
                      <ManageRequestsDialog team={team} />
                 </CardContent>
+                <CardFooter>
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href={`/teams/${team.id}`}>
+                            <Eye className="mr-2 h-4 w-4" /> View Team Page
+                        </Link>
+                    </Button>
+                </CardFooter>
               </Card>
             )})}
           </div>

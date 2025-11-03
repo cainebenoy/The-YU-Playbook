@@ -162,13 +162,13 @@
           "type": "string",
           "description": "Reference to Tournament the match belongs to. (Relationship: Tournament 1:N Match)"
         },
-        "team1Id": {
+        "teamAId": {
           "type": "string",
-          "description": "Reference to Team 1 in the match. (Relationship: Team 1:N Match)"
+          "description": "Reference to Team A in the match. (Relationship: Team 1:N Match)"
         },
-        "team2Id": {
+        "teamBId": {
           "type": "string",
-          "description": "Reference to Team 2 in the match. (Relationship: Team 1:N Match)"
+          "description": "Reference to Team B in the match. (Relationship: Team 1:N Match)"
         },
         "startTime": {
           "type": "string",
@@ -180,20 +180,20 @@
           "description": "Actual end time of the match.",
           "format": "date-time"
         },
-        "team1Score": {
+        "teamAScore": {
           "type": "number",
-          "description": "Score of Team 1 in the match."
+          "description": "Score of Team A in the match."
         },
-        "team2Score": {
+        "teamBScore": {
           "type": "number",
-          "description": "Score of Team 2 in the match."
+          "description": "Score of Team B in the match."
         }
       },
       "required": [
         "id",
         "tournamentId",
-        "team1Id",
-        "team2Id",
+        "teamAId",
+        "teamBId",
         "startTime"
       ]
     },
