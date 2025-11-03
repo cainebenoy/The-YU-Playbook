@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -21,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { YUPlaybookIcon } from "@/components/icons";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, AuthError } from "firebase/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -73,11 +74,15 @@ export default function SignUpPage() {
       });
       router.push("/profile");
     } catch (error: any) {
-      console.error("Sign up error", error);
+       console.error("Sign up error", error);
+       let description = "An unexpected error occurred.";
+       if (error.code === 'auth/email-already-in-use') {
+           description = "This email address is already in use. Please try another one or log in.";
+       }
        toast({
         variant: "destructive",
         title: "Sign Up Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: description,
       });
     } finally {
       setLoading(false);
