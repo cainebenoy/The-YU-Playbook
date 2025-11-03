@@ -15,7 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore, setDocumentNonBlocking } from "@/firebase";
+import { doc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,7 @@ const formSchema = z.object({
 export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -43,8 +45,28 @@ export default function SignUpPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Database not available' });
+      setLoading(false);
+      return;
+    }
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Create a user document in Firestore
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const newUserDoc = {
+        id: user.uid,
+        email: user.email,
+        displayName: user.email?.split('@')[0] || '', // Default display name
+        photoURL: '',
+        creationTime: user.metadata.creationTime || new Date().toISOString(),
+        lastSignInTime: user.metadata.lastSignInTime || new Date().toISOString(),
+      };
+      // Use setDocumentNonBlocking for a fire-and-forget write
+      setDocumentNonBlocking(userDocRef, newUserDoc, { merge: true });
+
        toast({
         title: "Account Created",
         description: "Welcome to YU Playbook!",
