@@ -52,6 +52,12 @@ export default function CreateMatchPage() {
 
   const form = useForm<z.infer<typeof matchFormSchema>>({
     resolver: zodResolver(matchFormSchema),
+    defaultValues: {
+      tournamentId: '',
+      teamAId: '',
+      teamBId: '',
+      startTime: '',
+    },
   });
 
   const handleTournamentChange = async (tournamentId: string) => {
