@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle, Trash2, UserPlus } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 
 type Player = {
@@ -53,6 +54,9 @@ export default function TeamsPage() {
   const { toast } = useToast();
   
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerNumber, setNewPlayerNumber] = useState("");
+  const [isRosterDialogOpen, setIsRosterDialogOpen] = useState(false);
 
   const teamsQuery = useMemoFirebase(() => {
       if (!firestore || !user) return null;
@@ -66,6 +70,16 @@ export default function TeamsPage() {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    // When the selectedTeam data updates from Firestore, update the state
+    if (selectedTeam && teams) {
+      const updatedTeam = teams.find(t => t.id === selectedTeam.id);
+      if (updatedTeam) {
+        setSelectedTeam(updatedTeam);
+      }
+    }
+  }, [teams, selectedTeam]);
 
   if (isUserLoading || !user || teamsLoading) {
     return <TeamPageSkeleton />;
@@ -89,6 +103,45 @@ export default function TeamsPage() {
       event.currentTarget.reset();
     }
   };
+
+  const handleAddPlayer = () => {
+    if (!firestore || !selectedTeam || !newPlayerName || !newPlayerNumber) {
+        toast({
+            variant: "destructive",
+            title: "Missing Information",
+            description: "Please enter a player name and number."
+        });
+        return;
+    }
+
+    const teamDocRef = doc(firestore, 'teams', selectedTeam.id);
+    const newPlayer = {
+      // Simple ID generation for client-side, consider UUIDs for robustness
+      id: `player_${Date.now()}`,
+      name: newPlayerName,
+      number: parseInt(newPlayerNumber, 10),
+      imageId: 'user_avatar_1' // Default avatar
+    };
+
+    updateDocumentNonBlocking(teamDocRef, {
+      roster: arrayUnion(newPlayer)
+    });
+
+    toast({ title: "Player Added", description: `${newPlayerName} has been added to the roster.` });
+    setNewPlayerName("");
+    setNewPlayerNumber("");
+  };
+
+  const handleRemovePlayer = (player: Player) => {
+    if (!firestore || !selectedTeam) return;
+
+    const teamDocRef = doc(firestore, 'teams', selectedTeam.id);
+    updateDocumentNonBlocking(teamDocRef, {
+        roster: arrayRemove(player)
+    });
+    toast({ title: "Player Removed", description: `${player.name} has been removed from the roster.` });
+  };
+
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -116,15 +169,11 @@ export default function TeamsPage() {
                   )}
                   <div>
                     <CardTitle className="font-headline">{team.name}</CardTitle>
-                    <CardDescription>{team.roster.length} players</CardDescription>
+                    <CardDescription>{team.roster?.length || 0} players</CardDescription>
                   </div>
                 </CardHeader>
                 <CardFooter>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button onClick={() => setSelectedTeam(team)} className="w-full">Manage Roster</Button>
-                    </DialogTrigger>
-                  </Dialog>
+                    <Button onClick={() => { setSelectedTeam(team); setIsRosterDialogOpen(true); }} className="w-full">Manage Roster</Button>
                 </CardFooter>
               </Card>
             )})}
@@ -149,56 +198,60 @@ export default function TeamsPage() {
         </TabsContent>
       </Tabs>
 
-      {selectedTeam && (
-          <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                  <DialogTitle className="font-headline text-2xl">Manage Roster: {selectedTeam.name}</DialogTitle>
-                  <DialogDescription>Add or remove players from your team.</DialogDescription>
-              </DialogHeader>
-              <div className="my-4">
-                  <h3 className="font-semibold mb-2">Add New Player</h3>
-                  <div className="flex gap-2">
-                      <Input placeholder="Player Name" />
-                      <Input type="number" placeholder="Number" className="w-24" />
-                      <Button><UserPlus className="h-4 w-4" /></Button>
-                  </div>
-              </div>
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                          <TableHead>Player</TableHead>
-                          <TableHead>Number</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {selectedTeam.roster.map(player => {
-                        const playerImage = placeholderImages.placeholderImages.find(p => p.id === player.imageId);
-                        return (
-                          <TableRow key={player.id}>
-                              <TableCell className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8">
-                                    {playerImage && <AvatarImage src={playerImage.imageUrl} alt={player.name} data-ai-hint={playerImage.imageHint} />}
-                                      <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
-                                  </Avatar>
-                                  {player.name}
-                              </TableCell>
-                              <TableCell>#{player.number}</TableCell>
-                              <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                              </TableCell>
-                          </TableRow>
-                      )})}
-                  </TableBody>
-              </Table>
-              <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button" variant="secondary">Close</Button>
-                  </DialogClose>
-              </DialogFooter>
-          </DialogContent>
-      )}
-
+      <Dialog open={isRosterDialogOpen} onOpenChange={setIsRosterDialogOpen}>
+        {selectedTeam && (
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl">Manage Roster: {selectedTeam.name}</DialogTitle>
+                    <DialogDescription>Add or remove players from your team.</DialogDescription>
+                </DialogHeader>
+                <div className="my-4">
+                    <h3 className="font-semibold mb-2">Add New Player</h3>
+                    <div className="flex gap-2 items-center">
+                        <Input placeholder="Player Name" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} />
+                        <Input type="number" placeholder="Number" className="w-24" value={newPlayerNumber} onChange={(e) => setNewPlayerNumber(e.target.value)} />
+                        <Button onClick={handleAddPlayer} size="icon"><UserPlus className="h-4 w-4" /></Button>
+                    </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Player</TableHead>
+                                <TableHead>Number</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {selectedTeam.roster?.map(player => {
+                              const playerImage = placeholderImages.placeholderImages.find(p => p.id === player.imageId);
+                              return (
+                                <TableRow key={player.id}>
+                                    <TableCell className="flex items-center gap-2">
+                                        <Avatar className="h-8 w-8">
+                                          {playerImage && <AvatarImage src={playerImage.imageUrl} alt={player.name} data-ai-hint={playerImage.imageHint} />}
+                                            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        {player.name}
+                                    </TableCell>
+                                    <TableCell>#{player.number}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemovePlayer(player)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            )})}
+                        </TableBody>
+                    </Table>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }
+
