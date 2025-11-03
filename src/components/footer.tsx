@@ -4,7 +4,7 @@ import { YUPlaybookIcon } from "./icons";
 
 export function Footer() {
   return (
-    <footer className="bg-card border-t">
+    <footer className="bg-background border-t">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
@@ -33,16 +33,16 @@ export function Footer() {
             <ul className="mt-4 space-y-2">
               <li><Link href="/tournaments" className="text-sm text-muted-foreground hover:text-primary">Tournaments</Link></li>
               <li><Link href="/live-scores" className="text-sm text-muted-foreground hover:text-primary">Live Scores</Link></li>
-              <li><Link href="/teams" className="text-sm text-muted-foreground hover:text-primary">Teams</Link></li>
+              <li><Link href="/teams/discover" className="text-sm text-muted-foreground hover:text-primary">Discover</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-headline font-semibold">Company</h3>
+            <h3 className="font-headline font-semibold">My YU</h3>
             <ul className="mt-4 space-y-2">
-              <li><Link href="#" className="text-sm text-muted-foreground hover:text-primary">About Us</Link></li>
-              <li><Link href="#" className="text-sm text-muted-foreground hover:text-primary">Careers</Link></li>
-              <li><Link href="#" className="text-sm text-muted-foreground hover:text-primary">Contact</Link></li>
+                <li><Link href="/profile" className="text-sm text-muted-foreground hover:text-primary">Profile</Link></li>
+                <li><Link href="/teams" className="text-sm text-muted-foreground hover:text-primary">My Teams</Link></li>
+                <li><Link href="/coaching" className="text-sm text-muted-foreground hover:text-primary">Coaching</Link></li>
             </ul>
           </div>
 

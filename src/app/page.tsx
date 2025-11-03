@@ -21,12 +21,12 @@ export default function Home() {
             data-ai-hint={heroImage.imageHint}
           />
         )}
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">
             YU Playbook: Your Ultimate Sports Platform
           </h1>
-          <p className="mt-4 md:mt-6 text-lg md:text-xl max-w-2xl mx-auto">
+          <p className="mt-4 md:mt-6 text-lg md:text-xl max-w-2xl mx-auto text-primary-foreground/80">
             Manage tournaments, streamline coaching, and build your team legacy. All in one place.
           </p>
           <div className="mt-8 md:mt-10 flex flex-wrap justify-center gap-4">
@@ -51,7 +51,7 @@ export default function Home() {
             </p>
           </div>
           <div className="mt-12 grid gap-8 md:grid-cols-3">
-            <Card className="hover:shadow-lg transition-shadow duration-300">
+            <Card className="hover:border-primary/50 transition-colors duration-300">
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="p-3 rounded-full bg-accent/10 text-accent">
                   <Trophy className="h-8 w-8" />
@@ -64,7 +64,7 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="hover:shadow-lg transition-shadow duration-300">
+            <Card className="hover:border-primary/50 transition-colors duration-300">
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="p-3 rounded-full bg-accent/10 text-accent">
                   <ClipboardList className="h-8 w-8" />
@@ -77,7 +77,7 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="hover:shadow-lg transition-shadow duration-300">
+            <Card className="hover:border-primary/50 transition-colors duration-300">
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="p-3 rounded-full bg-accent/10 text-accent">
                   <Users className="h-8 w-8" />

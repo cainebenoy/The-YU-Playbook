@@ -27,7 +27,7 @@ const AdminDashboardSkeleton = () => (
                     <Skeleton className="h-4 w-1/2" />
                 </CardHeader>
                 <CardContent>
-                    <Skeleton className="h-4 w-full" />
+                   <Skeleton className="h-4 w-full mb-4" />
                 </CardContent>
                 <CardFooter className="flex-col sm:flex-row gap-2">
                     <Skeleton className="h-10 w-full" />
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-start mb-8">
                 <div>
                     <h1 className="text-4xl font-headline font-bold">Admin Dashboard</h1>
                     <p className="text-muted-foreground mt-2">Manage all tournaments and events.</p>
@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
                 tournaments && tournaments.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {tournaments.map((tournament) => (
-                            <Card key={tournament.id} className="flex flex-col">
+                            <Card key={tournament.id} className="flex flex-col hover:border-primary/50 transition-colors">
                                 <CardHeader>
                                     <CardTitle className="font-headline">{tournament.name}</CardTitle>
                                     <CardDescription>{tournament.date} &bull; {tournament.location}</CardDescription>
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                    <div className="text-center py-16 border-2 border-dashed rounded-lg border-muted-foreground/30">
                         <h2 className="text-xl font-semibold">No Tournaments Found</h2>
                         <p className="text-muted-foreground mt-2">Get started by creating your first tournament.</p>
                         <Button asChild className="mt-4">

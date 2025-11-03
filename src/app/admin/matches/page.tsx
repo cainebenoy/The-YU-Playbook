@@ -71,10 +71,15 @@ export default function CreateMatchPage() {
     setIsLoadingTeams(true);
     const tournament = tournaments?.find(t => t.id === tournamentId);
     if (tournament && tournament.teamIds) {
-      const teamPromises = tournament.teamIds.map(id => getDoc(doc(firestore, 'teams', id)));
-      const teamDocs = await Promise.all(teamPromises);
-      const teamsData = teamDocs.map(d => ({ id: d.id, ...d.data() } as Team));
-      setRegisteredTeams(teamsData);
+      try {
+        const teamPromises = tournament.teamIds.map(id => getDoc(doc(firestore, 'teams', id)));
+        const teamDocs = await Promise.all(teamPromises);
+        const teamsData = teamDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Team));
+        setRegisteredTeams(teamsData);
+      } catch (e) {
+        console.error("Error fetching teams: ", e);
+        toast({variant: 'destructive', title: 'Error', description: 'Could not load registered teams.'});
+      }
     }
     setIsLoadingTeams(false);
   };
@@ -169,7 +174,7 @@ export default function CreateMatchPage() {
                           <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={isLoadingTeams}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select Team A..." />
+                                <SelectValue placeholder={isLoadingTeams ? "Loading teams..." : "Select Team A..."} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -191,7 +196,7 @@ export default function CreateMatchPage() {
                           <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={isLoadingTeams}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select Team B..." />
+                                <SelectValue placeholder={isLoadingTeams ? "Loading teams..." : "Select Team B..."} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
