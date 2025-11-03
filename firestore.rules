@@ -1,5 +1,5 @@
 /**
- * @file Firebase Security Rules for the Y-Ultimate Unified Platform.
+ * @file Firebase Security Rules for YU Playbook.
  *
  * Core Philosophy:
  * This ruleset enforces a user-ownership model for user profiles and coaching logs,

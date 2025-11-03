@@ -6,8 +6,8 @@ import "./globals.css";
 import { FirebaseClientProvider } from "@/firebase";
 
 export const metadata: Metadata = {
-  title: "Y-Ultimate Unified Platform",
-  description: "Unified platform for tournaments, coaching, and team management.",
+  title: "YU Playbook",
+  description: "Your ultimate sports playbook for tournaments, coaching, and team management.",
 };
 
 export default function RootLayout({

@@ -19,7 +19,7 @@ import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { YUltimateIcon } from "@/components/icons";
+import { YUPlaybookIcon } from "@/components/icons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const formSchema = z.object({
@@ -47,7 +47,7 @@ export default function SignUpPage() {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
        toast({
         title: "Account Created",
-        description: "Welcome to Y-Ultimate!",
+        description: "Welcome to YU Playbook!",
       });
       router.push("/profile");
     } catch (error: any) {
@@ -67,7 +67,7 @@ export default function SignUpPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-              <YUltimateIcon className="h-12 w-12 text-primary" />
+              <YUPlaybookIcon className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">Create an Account</CardTitle>
           <CardDescription>Join the ultimate sports platform today.</CardDescription>

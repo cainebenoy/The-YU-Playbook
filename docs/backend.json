@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user within the Y-Ultimate Unified Platform.",
+      "description": "Represents a user within the YU Playbook platform.",
       "properties": {
         "id": {
           "type": "string",

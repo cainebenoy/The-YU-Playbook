@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Twitter, Instagram, Facebook } from "lucide-react";
-import { YUltimateIcon } from "./icons";
+import { YUPlaybookIcon } from "./icons";
 
 export function Footer() {
   return (
@@ -9,11 +9,11 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <YUltimateIcon className="h-8 w-8 text-primary" />
-              <span className="font-headline text-xl font-bold">Y-Ultimate</span>
+              <YUPlaybookIcon className="h-8 w-8 text-primary" />
+              <span className="font-headline text-xl font-bold">YU Playbook</span>
             </Link>
             <p className="text-muted-foreground text-sm">
-              The unified platform for sports excellence.
+              The ultimate playbook for sports excellence.
             </p>
             <div className="flex space-x-4">
               <Link href="#" className="text-muted-foreground hover:text-primary">
@@ -56,7 +56,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Y-Ultimate Inc. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} YU Playbook Inc. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -24,7 +24,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">
-            Y-Ultimate: The Unified Sports Platform
+            YU Playbook: Your Ultimate Sports Platform
           </h1>
           <p className="mt-4 md:mt-6 text-lg md:text-xl max-w-2xl mx-auto">
             Manage tournaments, streamline coaching, and build your team legacy. All in one place.
@@ -47,7 +47,7 @@ export default function Home() {
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-headline font-bold">Everything You Need to Succeed</h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
-              Y-Ultimate provides a comprehensive suite of tools for players, coaches, and organizers.
+              YU Playbook provides a comprehensive suite of tools for players, coaches, and organizers.
             </p>
           </div>
           <div className="mt-12 grid gap-8 md:grid-cols-3">

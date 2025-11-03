@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Trophy, Gamepad2, Users } from "lucide-react";
 import { useUser } from "@/firebase";
 import { UserNav } from "./user-nav";
-import { YUltimateIcon } from "./icons";
+import { YUPlaybookIcon } from "./icons";
 
 const navLinks = [
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
@@ -22,8 +22,8 @@ export default function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="flex items-center space-x-2">
-            <YUltimateIcon className="h-6 w-6 text-primary" />
-            <span className="font-bold font-headline text-lg">Y-Ultimate</span>
+            <YUPlaybookIcon className="h-6 w-6 text-primary" />
+            <span className="font-bold font-headline text-lg">YU Playbook</span>
           </Link>
         </div>
 
@@ -38,8 +38,8 @@ export default function Header() {
             <SheetContent side="left">
               <div className="p-4">
                 <Link href="/" className="flex items-center space-x-2 mb-8">
-                   <YUltimateIcon className="h-6 w-6 text-primary" />
-                   <span className="font-bold font-headline text-lg">Y-Ultimate</span>
+                   <YUPlaybookIcon className="h-6 w-6 text-primary" />
+                   <span className="font-bold font-headline text-lg">YU Playbook</span>
                 </Link>
                 <nav className="flex flex-col space-y-4">
                   {navLinks.map(({ href, label, icon: Icon }) => (

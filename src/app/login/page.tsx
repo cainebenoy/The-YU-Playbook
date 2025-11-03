@@ -19,7 +19,7 @@ import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { YUltimateIcon } from "@/components/icons";
+import { YUPlaybookIcon } from "@/components/icons";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 const formSchema = z.object({
@@ -67,7 +67,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-                <YUltimateIcon className="h-12 w-12 text-primary" />
+                <YUPlaybookIcon className="h-12 w-12 text-primary" />
             </div>
           <CardTitle className="font-headline text-3xl">Welcome Back</CardTitle>
           <CardDescription>Enter your credentials to access your account.</CardDescription>
