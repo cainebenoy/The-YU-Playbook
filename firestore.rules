@@ -151,7 +151,8 @@ service cloud.firestore {
     match /matches/{matchId} {
       allow get, list: if true;
       allow update: if request.auth != null; // TODO: Add official/admin validation.
-      allow create, delete: if false; 
+      allow create: if request.auth != null; // Allow authenticated users to create matches
+      allow delete: if false; 
     }
 
 
