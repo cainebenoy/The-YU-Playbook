@@ -97,6 +97,21 @@ service cloud.firestore {
     }
 
     /**
+     * @description Secure match details. Open read access, no ownership for writes.
+     * @path /matches/{matchId}
+     * @allow (get, list) if request.auth != null
+     * @deny (create, update, delete) if false
+     * @principle Open read access with restricted writes for authenticated users.
+     */
+    match /matches/{matchId} {
+      allow get, list: if request.auth != null;
+
+      // CRITICAL: Matches does not have an ownerId or authorId field
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+
+    /**
      * @description Secure match details nested under tournaments. Open read access, no ownership for writes.
      * @path /tournaments/{tournamentId}/matches/{matchId}
      * @allow (get, list) if true
