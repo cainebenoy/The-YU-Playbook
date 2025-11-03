@@ -27,6 +27,11 @@ export const getFirebaseConfig = () => {
     );
     return null;
   }
+  
+  // Measurement ID is optional
+  if (!firebaseConfig.measurementId) {
+    console.info('Firebase Measurement ID is not provided. Google Analytics will be disabled.');
+  }
 
   return firebaseConfig;
 };
