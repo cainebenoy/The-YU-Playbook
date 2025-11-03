@@ -11,7 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser, useAuth } from "@/firebase";
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 import { LogOut, User, Users, Trophy, ClipboardList, ClipboardEdit, PlusSquare, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import placeholderImages from "@/lib/placeholder-images.json";
@@ -20,11 +21,22 @@ import { useRouter } from "next/navigation";
 
 const userAvatar = placeholderImages.placeholderImages.find(p => p.id === "user_avatar_1");
 
+type UserData = {
+  role?: 'admin' | 'coach' | 'player';
+}
+
 export function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userData } = useDoc<UserData>(userDocRef);
 
   const handleSignOut = async () => {
     try {
@@ -43,6 +55,8 @@ export function UserNav() {
   if (isUserLoading) {
     return null;
   }
+  
+  const isAdmin = userData?.role === 'admin';
 
   return (
     <DropdownMenu>
@@ -93,28 +107,32 @@ export function UserNav() {
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-         <DropdownMenuGroup>
-            <DropdownMenuLabel>Admin</DropdownMenuLabel>
-             <DropdownMenuItem asChild>
-                <Link href="/admin/scoring">
-                    <ClipboardEdit className="mr-2 h-4 w-4" />
-                    <span>Scoring</span>
-                </Link>
-            </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-                <Link href="/admin/matches">
-                    <Gamepad2 className="mr-2 h-4 w-4" />
-                    <span>Create Match</span>
-                </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-                <Link href="/admin/tournaments">
-                    <PlusSquare className="mr-2 h-4 w-4" />
-                    <span>Create Tournament</span>
-                </Link>
-            </DropdownMenuItem>
-        </DropdownMenuGroup>
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Admin</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                  <Link href="/admin/scoring">
+                      <ClipboardEdit className="mr-2 h-4 w-4" />
+                      <span>Scoring</span>
+                  </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                  <Link href="/admin/matches">
+                      <Gamepad2 className="mr-2 h-4 w-4" />
+                      <span>Create Match</span>
+                  </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                  <Link href="/admin/tournaments">
+                      <PlusSquare className="mr-2 h-4 w-4" />
+                      <span>Create Tournament</span>
+                  </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />

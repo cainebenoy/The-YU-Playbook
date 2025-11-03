@@ -64,6 +64,7 @@ export default function SignUpPage() {
         photoURL: '',
         creationTime: user.metadata.creationTime || new Date().toISOString(),
         lastSignInTime: user.metadata.lastSignInTime || new Date().toISOString(),
+        role: 'player', // Assign default role
       };
       // Use setDocumentNonBlocking for a fire-and-forget write
       setDocumentNonBlocking(userDocRef, newUserDoc, { merge: true });

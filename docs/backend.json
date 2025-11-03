@@ -33,6 +33,11 @@
           "type": "string",
           "description": "Timestamp of the user's last sign-in.",
           "format": "date-time"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the application.",
+          "enum": ["admin", "coach", "player"]
         }
       },
       "required": [
