@@ -336,6 +336,20 @@
         "notes": { "type": "string" }
       },
       "required": ["teamId", "coachId", "title", "eventType", "startTime", "endTime"]
+    },
+    "Goal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Goal",
+      "description": "A personal development goal set by a player.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["In Progress", "Completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "description", "status", "createdAt"]
     }
   },
   "auth": {
@@ -511,6 +525,18 @@
           "params": [
             { "name": "teamId", "description": "The unique identifier of the team." },
             { "name": "eventId", "description": "The unique identifier of the event." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/goals/{goalId}",
+        "definition": {
+          "entityName": "Goal",
+          "schema": { "$ref": "#/backend/entities/Goal" },
+          "description": "Stores personal development goals for a user. Only the user can write. A user's coach can read them.",
+          "params": [
+            { "name": "userId", "description": "The unique identifier of the user." },
+            { "name": "goalId", "description": "The unique identifier of the goal." }
           ]
         }
       }

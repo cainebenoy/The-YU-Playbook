@@ -11,11 +11,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Target } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 type Player = {
   id: string;
@@ -40,6 +41,13 @@ type CoachingLog = {
     notes: string;
 }
 
+type Goal = {
+    id: string;
+    description: string;
+    status: 'In Progress' | 'Completed';
+    createdAt: string;
+}
+
 const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player }) => {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -51,7 +59,13 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
     return query(collection(firestore, `users/${player.id}/coachingLogs`), where('coachId', '==', coachId), orderBy('date', 'desc'));
   }, [firestore, player.id, coachId]);
 
-  const { data: logs, isLoading } = useCollection<CoachingLog>(logsQuery);
+  const goalsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, `users/${player.id}/goals`), where('status', '==', 'In Progress'), orderBy('createdAt', 'desc'));
+  }, [firestore, player.id]);
+
+  const { data: logs, isLoading: isLoadingLogs } = useCollection<CoachingLog>(logsQuery);
+  const { data: goals, isLoading: isLoadingGoals } = useCollection<Goal>(goalsQuery);
 
   const handleAddLog = () => {
     if (!firestore || !newLogNotes) {
@@ -78,7 +92,7 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full">View / Add Logs</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <div className="flex items-center gap-4">
             <Avatar>
@@ -87,37 +101,57 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
             </Avatar>
             <div>
               <DialogTitle className="font-headline text-2xl">Coaching Logs for {playerName}</DialogTitle>
-              <DialogDescription>Review past sessions and add new notes.</DialogDescription>
+              <DialogDescription>Review past sessions, see player goals, and add new notes.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="new-log-notes">New Log Entry</Label>
-            <Textarea
-              id="new-log-notes"
-              placeholder={`Write your coaching notes for ${playerName}...`}
-              value={newLogNotes}
-              onChange={(e) => setNewLogNotes(e.target.value)}
-            />
-            <Button onClick={handleAddLog} size="sm">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Log
-            </Button>
-          </div>
-          <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-            <h3 className="font-semibold">History</h3>
-            {isLoading && <Skeleton className="h-20 w-full" />}
-            {logs && logs.length > 0 ? (
-              logs.map(log => (
-                <div key={log.id} className="border-l-2 pl-4">
-                  <p className="text-sm text-muted-foreground">{format(new Date(log.date), "PPP 'at' p")}</p>
-                  <p className="text-sm whitespace-pre-wrap">{log.notes}</p>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Active Goals</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                    {isLoadingGoals && <Skeleton className="h-20 w-full" />}
+                    {goals && goals.length > 0 ? (
+                        goals.map(goal => (
+                            <div key={goal.id} className="p-3 rounded-md bg-muted/50 border">
+                                <p className="text-sm">{goal.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Set on {format(new Date(goal.createdAt), 'PP')}</p>
+                            </div>
+                        ))
+                    ) : (
+                        !isLoadingGoals && <p className="text-sm text-muted-foreground text-center py-4">No active goals set.</p>
+                    )}
                 </div>
-              ))
-            ) : (
-              !isLoading && <p className="text-sm text-muted-foreground text-center py-4">No logs found for this player.</p>
-            )}
-          </div>
+            </div>
+             <div className="space-y-4">
+                <div>
+                    <h3 className="font-semibold mb-2">New Log Entry</h3>
+                    <div className="space-y-2">
+                        <Textarea
+                        id="new-log-notes"
+                        placeholder={`Write your coaching notes for ${playerName}...`}
+                        value={newLogNotes}
+                        onChange={(e) => setNewLogNotes(e.target.value)}
+                        />
+                        <Button onClick={handleAddLog} size="sm" disabled={!newLogNotes}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Log
+                        </Button>
+                    </div>
+                </div>
+                <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+                    <h3 className="font-semibold">Log History</h3>
+                    {isLoadingLogs && <Skeleton className="h-20 w-full" />}
+                    {logs && logs.length > 0 ? (
+                    logs.map(log => (
+                        <div key={log.id} className="border-l-2 pl-4">
+                        <p className="text-sm text-muted-foreground">{format(new Date(log.date), "PPP 'at' p")}</p>
+                        <p className="text-sm whitespace-pre-wrap">{log.notes}</p>
+                        </div>
+                    ))
+                    ) : (
+                    !isLoadingLogs && <p className="text-sm text-muted-foreground text-center py-4">No logs found for this player.</p>
+                    )}
+                </div>
+            </div>
         </div>
       </DialogContent>
     </Dialog>

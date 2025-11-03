@@ -41,6 +41,19 @@ service cloud.firestore {
       // This requires one read operation per protected request.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    function isCoachOfPlayer(playerId) {
+        // Check if the requesting user is a coach of any team the player is on.
+        // This is a complex rule and may be inefficient.
+        // A better approach might be to store a player's coach IDs directly on their user object if performance becomes an issue.
+        return exists(
+            /databases/$(database)/documents/teams?where(
+                'coachId', '==', request.auth.uid
+            ).where(
+                'roster', 'array-contains', playerId
+            )
+        );
+    }
 
 
     /**
@@ -52,6 +65,17 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
+
+        /**
+         * @description Secure personal goals for a user.
+         * @path /users/{userId}/goals/{goalId}
+         */
+         match /goals/{goalId} {
+            // A user can read and write their own goals.
+            allow write: if isOwner(userId);
+            // A user can read their own goals. A coach can read their player's goals.
+            allow get, list: if isOwner(userId) || isCoachOfPlayer(userId);
+         }
     }
 
     /**

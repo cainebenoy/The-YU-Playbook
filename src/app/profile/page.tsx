@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useAuth, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useAuth, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, orderBy } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 
@@ -21,6 +21,9 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { format } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
+import { PlusCircle, Target, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const userAvatar = placeholderImages.placeholderImages.find(p => p.id === 'user_avatar_1');
 
@@ -167,10 +170,19 @@ type TournamentHistory = {
   date: string;
 };
 
+type Goal = {
+  id: string;
+  description: string;
+  status: 'In Progress' | 'Completed';
+  createdAt: string;
+};
+
 export default function ProfilePage() {
   const { user, isUserLoading, setUser } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [newGoal, setNewGoal] = useState('');
 
   const handleProfileUpdate = () => {
     // This is a bit of a hack to force the useUser hook to re-render.
@@ -194,6 +206,46 @@ export default function ProfilePage() {
   }, [firestore, user]);
 
   const { data: tournamentHistory, isLoading: historyLoading } = useCollection<TournamentHistory>(tournamentHistoryQuery);
+
+   const goalsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/goals`), orderBy('createdAt', 'desc'));
+  }, [firestore, user]);
+  
+  const { data: goals, isLoading: goalsLoading } = useCollection<Goal>(goalsQuery);
+
+
+  const handleAddGoal = () => {
+    if (!firestore || !user || !newGoal) {
+        toast({ variant: 'destructive', title: 'Goal cannot be empty.' });
+        return;
+    }
+    const goalsCollection = collection(firestore, `users/${user.uid}/goals`);
+    const goalData = {
+        userId: user.uid,
+        description: newGoal,
+        status: 'In Progress',
+        createdAt: new Date().toISOString(),
+    };
+    addDocumentNonBlocking(goalsCollection, goalData);
+    toast({ title: 'Goal Added', description: 'Your new goal has been saved.' });
+    setNewGoal('');
+  };
+
+  const handleGoalStatusChange = (goal: Goal, completed: boolean) => {
+    if (!firestore || !user) return;
+    const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
+    updateDocumentNonBlocking(goalDocRef, {
+        status: completed ? 'Completed' : 'In Progress',
+    });
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
+    if (!firestore || !user) return;
+    const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goalId);
+    deleteDocumentNonBlocking(goalDocRef);
+    toast({ title: 'Goal Removed' });
+  };
 
 
   useEffect(() => {
@@ -227,11 +279,68 @@ export default function ProfilePage() {
           <EditProfileDialog user={user} onProfileUpdate={handleProfileUpdate} />
         </div>
 
-        <Tabs defaultValue="coaching">
-          <TabsList className="grid w-full grid-cols-2 md:w-96">
+        <Tabs defaultValue="goals">
+          <TabsList className="grid w-full grid-cols-3 md:w-[480px]">
+            <TabsTrigger value="goals">My Goals</TabsTrigger>
             <TabsTrigger value="coaching">Coaching Logs</TabsTrigger>
             <TabsTrigger value="history">Tournament History</TabsTrigger>
           </TabsList>
+          <TabsContent value="goals">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Target className="text-primary"/> My Personal Goals</CardTitle>
+                    <CardDescription>Set and track your development goals. Coaches can see your active goals.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2 mb-6">
+                        <Label htmlFor="new-goal">Add a new goal</Label>
+                        <div className="flex gap-2">
+                           <Textarea 
+                                id="new-goal" 
+                                placeholder="e.g., Improve my backhand throw accuracy."
+                                value={newGoal}
+                                onChange={(e) => setNewGoal(e.target.value)}
+                            />
+                           <Button onClick={handleAddGoal} disabled={!newGoal}><PlusCircle className="mr-2 h-4 w-4"/> Add</Button>
+                        </div>
+                    </div>
+                    
+                    {goalsLoading ? <Skeleton className="h-40 w-full" /> : (
+                        goals && goals.length > 0 ? (
+                           <div className="space-y-4">
+                                {goals.map((goal) => (
+                                    <div key={goal.id} className="flex items-center justify-between p-4 rounded-lg border bg-background">
+                                        <div className="flex items-start gap-3">
+                                            <Checkbox
+                                                id={`goal-${goal.id}`}
+                                                checked={goal.status === 'Completed'}
+                                                onCheckedChange={(checked) => handleGoalStatusChange(goal, !!checked)}
+                                            />
+                                            <div>
+                                                <label 
+                                                    htmlFor={`goal-${goal.id}`} 
+                                                    className={`text-sm font-medium leading-none ${goal.status === 'Completed' ? 'line-through text-muted-foreground' : ''}`}
+                                                >
+                                                    {goal.description}
+                                                </label>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Set on {format(new Date(goal.createdAt), 'PP')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                       <Button variant="ghost" size="icon" onClick={() => handleDeleteGoal(goal.id)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                       </Button>
+                                    </div>
+                                ))}
+                           </div>
+                        ) : (
+                             <p className="text-center text-muted-foreground py-8">You haven't set any goals yet. Add one above to get started!</p>
+                        )
+                    )}
+                </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="coaching">
             <Card>
               <CardHeader>
