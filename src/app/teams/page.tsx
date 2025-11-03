@@ -14,11 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck, Eye, Share2 } from "lucide-react";
+import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck, Eye, Share2, Megaphone } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
-import { collection, query, where, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, doc, arrayUnion, arrayRemove, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { formatDistanceToNow } from 'date-fns';
 
 type Player = {
   id: string;
@@ -44,6 +46,93 @@ type JoinRequest = {
   photoURL?: string;
   status: 'pending';
 }
+
+type Announcement = {
+    id: string;
+    message: string;
+    timestamp: string;
+}
+
+const ManageAnnouncementsDialog = ({ team, user }: { team: Team; user: any }) => {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+    const [newMessage, setNewMessage] = useState("");
+
+    const announcementsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, `teams/${team.id}/announcements`), orderBy('timestamp', 'desc'));
+    }, [firestore, team.id]);
+
+    const { data: announcements, isLoading } = useCollection<Announcement>(announcementsQuery);
+
+    const handleSendAnnouncement = () => {
+        if (!firestore || !newMessage) {
+            toast({ variant: 'destructive', title: 'Message cannot be empty.' });
+            return;
+        }
+        
+        const announcementCollection = collection(firestore, `teams/${team.id}/announcements`);
+        const newAnnouncement = {
+            teamId: team.id,
+            coachId: user.uid,
+            message: newMessage,
+            timestamp: new Date().toISOString(),
+        };
+
+        addDocumentNonBlocking(announcementCollection, newAnnouncement);
+        toast({ title: "Announcement Sent", description: "Your message has been broadcast to the team." });
+        setNewMessage("");
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <Megaphone className="mr-2 h-4 w-4" />
+                    Announcements ({announcements?.length || 0})
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Announcements for {team.name}</DialogTitle>
+                    <DialogDescription>Broadcast messages to your team. They will appear on the public team page.</DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 my-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="announcement-message">New Announcement</Label>
+                        <Textarea 
+                            id="announcement-message"
+                            placeholder="e.g., Practice is moved to 7 PM tonight." 
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                        />
+                    </div>
+                    <Button onClick={handleSendAnnouncement} disabled={!newMessage}>Send Message</Button>
+                </div>
+
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                    <h3 className="font-semibold">Recent Announcements</h3>
+                     {isLoading && <Skeleton className="h-20 w-full" />}
+                     {announcements && announcements.length > 0 ? (
+                        announcements.map(item => (
+                            <div key={item.id} className="border-l-2 pl-3">
+                               <p className="text-sm whitespace-pre-wrap">{item.message}</p>
+                               <p className="text-xs text-muted-foreground mt-1">
+                                   {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                               </p>
+                            </div>
+                        ))
+                     ) : (
+                        !isLoading && <p className="text-sm text-center text-muted-foreground py-4">No announcements sent yet.</p>
+                     )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 const ManageRequestsDialog = ({ team }: { team: Team }) => {
     const firestore = useFirestore();
@@ -280,6 +369,7 @@ export default function TeamsPage() {
                 <CardContent className="flex flex-col gap-2">
                     <Button onClick={() => { setSelectedTeam(team); setIsRosterDialogOpen(true); }} className="w-full">Manage Roster</Button>
                      <ManageRequestsDialog team={team} />
+                     <ManageAnnouncementsDialog team={team} user={user} />
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
                     <Button asChild variant="outline" className="w-full">
@@ -370,3 +460,5 @@ export default function TeamsPage() {
     </div>
   );
 }
+
+    

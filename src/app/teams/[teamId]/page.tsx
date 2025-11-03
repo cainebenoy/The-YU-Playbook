@@ -1,17 +1,19 @@
 
 'use client';
 
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { Users, Shirt } from 'lucide-react';
+import { Users, Shirt, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
+
 
 type Player = {
   id: string;
@@ -30,6 +32,12 @@ type Team = {
   coachId: string;
 };
 
+type Announcement = {
+    id: string;
+    message: string;
+    timestamp: string;
+}
+
 const TeamPageSkeleton = () => (
   <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
@@ -39,20 +47,35 @@ const TeamPageSkeleton = () => (
         <Skeleton className="h-6 w-48" />
       </div>
     </div>
-    <Card className="bg-card/50">
-      <CardHeader>
-        <Skeleton className="h-8 w-40" />
-      </CardHeader>
-      <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="flex flex-col items-center gap-3">
-            <Skeleton className="h-24 w-24 rounded-full" />
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-4 w-16" />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+            <Card className="bg-card/50">
+            <CardHeader>
+                <Skeleton className="h-8 w-40" />
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-3">
+                    <Skeleton className="h-24 w-24 rounded-full" />
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                </div>
+                ))}
+            </CardContent>
+            </Card>
+        </div>
+        <div>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-48" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                </CardContent>
+            </Card>
+        </div>
+    </div>
   </div>
 );
 
@@ -65,8 +88,16 @@ export default function TeamDetailPage() {
     if (!firestore || !teamId) return null;
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId]);
+  
+  const announcementsQuery = useMemoFirebase(() => {
+    if (!firestore || !teamId) return null;
+    return query(collection(firestore, 'teams', teamId, 'announcements'), orderBy('timestamp', 'desc'));
+  }, [firestore, teamId]);
 
-  const { data: team, isLoading } = useDoc<Team>(teamDocRef);
+  const { data: team, isLoading: isTeamLoading } = useDoc<Team>(teamDocRef);
+  const { data: announcements, isLoading: isAnnouncementsLoading } = useCollection<Announcement>(announcementsQuery);
+
+  const isLoading = isTeamLoading || isAnnouncementsLoading;
 
   if (isLoading) {
     return <TeamPageSkeleton />;
@@ -111,32 +142,67 @@ export default function TeamDetailPage() {
             </div>
         </div>
 
-        <Card className='border-primary/20 shadow-xl shadow-primary/5 bg-card/80 backdrop-blur-sm'>
-            <CardHeader>
-                <CardTitle className="font-headline text-3xl">Official Roster</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-10">
-            {team.roster?.map(player => {
-                const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
-                return (
-                <Link href={`/players/${player.id}`} key={player.id} className="flex flex-col items-center text-center gap-3 group">
-                    <Avatar className="h-28 w-28 border-4 border-transparent group-hover:border-primary/50 transition-all duration-300">
-                        {playerImage && <AvatarImage src={playerImage} alt={player.name || player.displayName || 'Player'} />}
-                        <AvatarFallback className="text-4xl bg-muted group-hover:bg-primary/10 transition-colors">{(player.name || player.displayName || 'P').charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className='mt-2'>
-                        <p className="font-semibold text-lg">{player.name || player.displayName}</p>
-                        <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-                            <Shirt className="h-4 w-4" /> Jersey #{player.number}
-                        </p>
-                    </div>
-                </Link>
-                )
-            })}
-            </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+           <div className="lg:col-span-2">
+                <Card className='border-primary/20 shadow-xl shadow-primary/5 bg-card/80 backdrop-blur-sm'>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-3xl">Official Roster</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-x-6 gap-y-10">
+                    {team.roster?.map(player => {
+                        const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
+                        return (
+                        <Link href={`/players/${player.id}`} key={player.id} className="flex flex-col items-center text-center gap-3 group">
+                            <Avatar className="h-28 w-28 border-4 border-transparent group-hover:border-primary/50 transition-all duration-300">
+                                {playerImage && <AvatarImage src={playerImage} alt={player.name || player.displayName || 'Player'} />}
+                                <AvatarFallback className="text-4xl bg-muted group-hover:bg-primary/10 transition-colors">{(player.name || player.displayName || 'P').charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className='mt-2'>
+                                <p className="font-semibold text-lg">{player.name || player.displayName}</p>
+                                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                                    <Shirt className="h-4 w-4" /> Jersey #{player.number}
+                                </p>
+                            </div>
+                        </Link>
+                        )
+                    })}
+                    </CardContent>
+                </Card>
+           </div>
+           <div className="lg:sticky lg:top-24">
+               <Card>
+                   <CardHeader>
+                       <CardTitle className="flex items-center gap-2">
+                           <Megaphone className="text-primary" />
+                           Announcements
+                       </CardTitle>
+                       <CardDescription>Latest updates from the coach.</CardDescription>
+                   </CardHeader>
+                   <CardContent>
+                       {announcements && announcements.length > 0 ? (
+                           <div className="space-y-4">
+                               {announcements.map(announcement => (
+                                   <div key={announcement.id} className="border-l-2 border-primary/50 pl-3">
+                                       <p className="text-sm whitespace-pre-wrap">{announcement.message}</p>
+                                       <p className="text-xs text-muted-foreground mt-1">
+                                           {formatDistanceToNow(new Date(announcement.timestamp), { addSuffix: true })}
+                                       </p>
+                                   </div>
+                               ))}
+                           </div>
+                       ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">No announcements yet.</p>
+                       )}
+                   </CardContent>
+               </Card>
+           </div>
+        </div>
+
         </div>
     </div>
   );
 }
 
+
+
+    

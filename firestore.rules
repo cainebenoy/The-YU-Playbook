@@ -14,6 +14,7 @@
  * - /coachingPrograms/{coachingProgramId}: Coaching programs, owned by the instructor.
  * - /teams/{teamId}: Team data, publicly readable.
  * - /teams/{teamId}/joinRequests/{userId}: Join requests, created by users, managed by coaches.
+ * - /teams/{teamId}/announcements/{announcementId}: Announcements, created by coach, readable by all.
  * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
  * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
  * - /users/{userId}/tournamentHistory/{tournamentHistoryId}: Tournament history, owned by the user.
@@ -89,6 +90,10 @@ service cloud.firestore {
      * @path /teams/{teamId}
      */
     match /teams/{teamId} {
+      function isTeamCoach() {
+          return get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
+      }
+      
       function isCoach(coachId) {
         return request.auth.uid == coachId;
       }
@@ -106,11 +111,6 @@ service cloud.firestore {
         function isRequestingUser() {
           return request.auth.uid == userId;
         }
-        
-        function isTeamCoach() {
-            let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
-            return teamDoc.data.coachId == request.auth.uid;
-        }
 
         // Any authenticated user can create their own request
         allow create: if request.auth != null && isRequestingUser();
@@ -119,6 +119,17 @@ service cloud.firestore {
         // Only the coach can list, update or delete requests
         allow list, update, delete: if request.auth != null && isTeamCoach();
       }
+
+       /**
+       * @description Secure announcements for a team.
+       * @path /teams/{teamId}/announcements/{announcementId}
+       */
+       match /announcements/{announcementId} {
+         // Anyone authenticated can read announcements (e.g., players, fans)
+         allow get, list: if request.auth != null;
+         // Only the coach of the team can create, update, or delete announcements
+         allow write: if isTeamCoach();
+       }
     }
 
     /**
@@ -175,3 +186,5 @@ service cloud.firestore {
      }
   }
 }
+
+    
