@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { LogOut, User, Users, Trophy, ClipboardList, ClipboardEdit, PlusSquare, Gamepad2 } from "lucide-react";
+import { LogOut, User, Users, Trophy, ClipboardList, ClipboardEdit, PlusSquare, Gamepad2, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { signOut as firebaseSignOut } from "firebase/auth";
@@ -112,6 +112,12 @@ export function UserNav() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuLabel>Admin</DropdownMenuLabel>
+               <DropdownMenuItem asChild>
+                  <Link href="/admin">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                  </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                   <Link href="/admin/scoring">
                       <ClipboardEdit className="mr-2 h-4 w-4" />
