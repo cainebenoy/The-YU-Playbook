@@ -113,7 +113,7 @@ service cloud.firestore {
      * @principle Open read access with restricted writes for authenticated users.
      */
     match /matches/{matchId} {
-      allow get, list: if request.auth != null;
+      allow get, list: if true;
       allow update: if request.auth != null; // TODO: Add official/admin validation.
       allow create, delete: if false; 
     }
@@ -146,16 +146,22 @@ service cloud.firestore {
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
+      function isCoach(coachId) {
+        return request.auth.uid == coachId;
+      }
       function isOwnerOrCoach(userId, coachId) {
-        return request.auth.uid == userId || request.auth.uid == coachId;
+        return isOwner(userId) || isCoach(coachId);
       }
 
       allow get: if isOwnerOrCoach(userId, resource.data.coachId);
-      allow list: if isOwner(userId);
+      allow list: if isOwnerOrCoach(userId, resource.data.coachId);
 
-      allow create: if isOwnerOrCoach(userId, request.resource.data.coachId) && request.resource.data.userId == userId;
-      allow update: if isOwnerOrCoach(userId, resource.data.coachId) && resource != null && resource.data.userId == userId;
-      allow delete: if isOwnerOrCoach(userId, resource.data.coachId) && resource != null;
+      // Only a coach can create a log.
+      // The log must be for the user specified in the path.
+      allow create: if isCoach(request.resource.data.coachId) && request.resource.data.userId == userId;
+      
+      // Only the coach who created the log can update or delete it.
+      allow update, delete: if isCoach(resource.data.coachId);
     }
 
     /**
