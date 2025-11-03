@@ -57,8 +57,15 @@ service cloud.firestore {
      * @path /tournaments/{tournamentId}
      */
     match /tournaments/{tournamentId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+        allow get, list: if true;
+        allow create, delete: if isAdmin();
+        allow update: if request.auth != null && (
+            isAdmin() || 
+            (
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teamIds']) &&
+                request.resource.data.teamIds.size() == resource.data.teamIds.size() + 1
+            )
+        );
     }
 
     /**
