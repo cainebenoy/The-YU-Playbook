@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -31,6 +32,10 @@ export default function CreateTournamentPage() {
 
   const form = useForm<z.infer<typeof tournamentFormSchema>>({
     resolver: zodResolver(tournamentFormSchema),
+    defaultValues: {
+      name: '',
+      location: '',
+    },
   });
 
   const onSubmit = async (values: z.infer<typeof tournamentFormSchema>) => {
@@ -50,7 +55,7 @@ export default function CreateTournamentPage() {
 
     try {
       const tournamentsCollection = collection(firestore, 'tournaments');
-      await addDocumentNonBlocking(tournamentsCollection, newTournament);
+      addDocumentNonBlocking(tournamentsCollection, newTournament);
       toast({
         title: 'Tournament Created',
         description: `${values.name} has been successfully created.`,
@@ -103,53 +108,83 @@ export default function CreateTournamentPage() {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
+              <div className="flex flex-col sm:flex-row gap-4">
+                 <FormField
                   control={form.control}
                   name="startDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem className="flex flex-col flex-1">
                       <FormLabel>Start Date</FormLabel>
-                      <Popover>
+                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant={'outline'}
-                              className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
                             >
-                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date()} initialFocus />
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date < new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
                         </PopoverContent>
                       </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
+                 <FormField
                   control={form.control}
                   name="endDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem className="flex flex-col flex-1">
                       <FormLabel>End Date</FormLabel>
-                      <Popover>
+                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant={'outline'}
-                              className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
                             >
-                              {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date(form.getValues('startDate'))} initialFocus />
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date < new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
                         </PopoverContent>
                       </Popover>
                       <FormMessage />
@@ -157,7 +192,7 @@ export default function CreateTournamentPage() {
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating...' : 'Create Tournament'}
               </Button>
             </form>
