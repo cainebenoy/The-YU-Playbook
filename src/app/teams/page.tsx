@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Trash2, UserPlus, Mail, Eye, Share2, Megaphone } from "lucide-react";
+import { PlusCircle, Trash2, UserPlus, Mail, Eye, Share2, Megaphone, CalendarPlus } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
 import { collection, query, where, doc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
@@ -22,6 +22,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 
 type PlayerRole = 'Player' | 'Captain' | 'Handler' | 'Cutter';
@@ -55,6 +64,105 @@ type Announcement = {
     id: string;
     message: string;
     timestamp: string;
+}
+
+const eventFormSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters.'),
+  eventType: z.string({ required_error: 'Please select an event type.' }),
+  startTime: z.date({ required_error: 'A start time is required.' }),
+  endTime: z.date({ required_error: 'An end time is required.' }),
+  location: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const ScheduleEventDialog = ({ team, user }: { team: Team; user: any }) => {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+
+    const form = useForm<z.infer<typeof eventFormSchema>>({
+        resolver: zodResolver(eventFormSchema),
+        defaultValues: {
+            title: '',
+            location: '',
+            notes: '',
+        }
+    });
+
+    const onSubmit = (values: z.infer<typeof eventFormSchema>) => {
+        if (!firestore) return;
+        
+        const eventCollection = collection(firestore, `teams/${team.id}/events`);
+        const newEvent = {
+            teamId: team.id,
+            teamName: team.name,
+            coachId: user.uid,
+            title: values.title,
+            eventType: values.eventType,
+            startTime: values.startTime.toISOString(),
+            endTime: values.endTime.toISOString(),
+            location: values.location || '',
+            notes: values.notes || '',
+        };
+
+        addDocumentNonBlocking(eventCollection, newEvent);
+        toast({ title: "Event Scheduled", description: `${values.title} has been added to the team's schedule.` });
+        form.reset();
+        setIsOpen(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Schedule Event
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Schedule New Event for {team.name}</DialogTitle>
+                    <DialogDescription>Fill in the details for the new team event.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="title" render={({ field }) => (
+                            <FormItem><Label>Title</Label><FormControl><Input placeholder="e.g., Evening Practice" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="eventType" render={({ field }) => (
+                            <FormItem><Label>Event Type</Label><Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select an event type" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Practice">Practice</SelectItem>
+                                    <SelectItem value="Game">Game</SelectItem>
+                                    <SelectItem value="Scrimmage">Scrimmage</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                            </Select><FormMessage /></FormItem>
+                        )} />
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormField control={form.control} name="startTime" render={({ field }) => (
+                                <FormItem><Label>Start Time</Label><FormControl><Input type="datetime-local" {...field} value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""} onChange={e => field.onChange(new Date(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                             <FormField control={form.control} name="endTime" render={({ field }) => (
+                                <FormItem><Label>End Time</Label><FormControl><Input type="datetime-local" {...field} value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ""} onChange={e => field.onChange(new Date(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
+                        <FormField control={form.control} name="location" render={({ field }) => (
+                            <FormItem><Label>Location</Label><FormControl><Input placeholder="e.g., Central Park Field #3" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="notes" render={({ field }) => (
+                            <FormItem><Label>Notes</Label><FormControl><Textarea placeholder="e.g., Bring both light and dark jerseys." {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+                            <Button type="submit">Create Event</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    )
 }
 
 const ManageAnnouncementsDialog = ({ team, user }: { team: Team; user: any }) => {
@@ -390,6 +498,7 @@ export default function TeamsPage() {
                     <Button onClick={() => { setSelectedTeam(team); setIsRosterDialogOpen(true); }} className="w-full">Manage Roster</Button>
                      <ManageRequestsDialog team={team} />
                      <ManageAnnouncementsDialog team={team} user={user} />
+                     <ScheduleEventDialog team={team} user={user} />
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
                     <Button asChild variant="outline" className="w-full">

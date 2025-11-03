@@ -15,6 +15,7 @@
  * - /teams/{teamId}: Team data, publicly readable.
  * - /teams/{teamId}/joinRequests/{userId}: Join requests, created by users, managed by coaches.
  * - /teams/{teamId}/announcements/{announcementId}: Announcements, created by coach, readable by all.
+ * - /teams/{teamId}/events/{eventId}: Events, created by coach, readable by all.
  * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
  * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
  * - /users/{userId}/tournamentHistory/{tournamentHistoryId}: Tournament history, owned by the user.
@@ -130,6 +131,17 @@ service cloud.firestore {
          // Only the coach of the team can create, update, or delete announcements
          allow write: if isTeamCoach();
        }
+
+       /**
+        * @description Secure events for a team.
+        * @path /teams/{teamId}/events/{eventId}
+        */
+       match /events/{eventId} {
+         // Anyone authenticated can read team events
+         allow get, list: if request.auth != null;
+         // Only the coach of the team can create, update, or delete events
+         allow write: if isTeamCoach();
+       }
     }
 
     /**
@@ -186,5 +198,4 @@ service cloud.firestore {
      }
   }
 }
-
     

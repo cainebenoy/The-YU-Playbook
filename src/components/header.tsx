@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Trophy, Gamepad2, Users, ClipboardList, Search } from 'lucide-react';
+import { Menu, Trophy, Gamepad2, Users, ClipboardList, Search, CalendarDays } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { UserNav } from './user-nav';
 import { YUPlaybookIcon } from './icons';
@@ -11,6 +11,7 @@ import { YUPlaybookIcon } from './icons';
 const navLinks = [
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/live-scores', label: 'Live Scores', icon: Gamepad2 },
+  { href: '/schedule', label: 'Schedule', icon: CalendarDays },
   { href: '/teams', label: 'My Teams', icon: Users },
   { href: '/teams/discover', label: 'Discover Teams', icon: Search },
   { href: '/coaching', label: 'Coaching', icon: ClipboardList },

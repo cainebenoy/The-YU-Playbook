@@ -318,6 +318,24 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["teamId", "coachId", "message", "timestamp"]
+    },
+    "Event": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Event",
+      "description": "A scheduled event for a team, such as a practice or game.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teamId": { "type": "string" },
+        "coachId": { "type": "string" },
+        "title": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["Practice", "Game", "Scrimmage", "Other"] },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["teamId", "coachId", "title", "eventType", "startTime", "endTime"]
     }
   },
   "auth": {
@@ -483,10 +501,20 @@
             { "name": "announcementId", "description": "The unique identifier of the announcement." }
           ]
         }
+      },
+       {
+        "path": "/teams/{teamId}/events/{eventId}",
+        "definition": {
+          "entityName": "Event",
+          "schema": { "$ref": "#/backend/entities/Event" },
+          "description": "Stores team events. Only the coach can create, update, or delete events. All authenticated users can read.",
+          "params": [
+            { "name": "teamId", "description": "The unique identifier of the team." },
+            { "name": "eventId", "description": "The unique identifier of the event." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support required QAPs (Queries are not Filters), and maintain data integrity.\n\n*   **Users Collection:** Stores user profiles. Access is path-based, ensuring only the user can read/write their profile.\n*   **Tournaments Collection:** Stores tournament information.  No specific ownership, open access.\n*   **Teams Collection:** Stores team data. No specific ownership, open access.\n*   **Matches Collection:** Stores match details, nested under tournaments to leverage hierarchical data. No specific ownership, open access.\n*   **CoachingPrograms Collection:** Stores coaching programs. Each program has an instructor and students; instructorId is stored within the document. StudentIds are stored in the `studentIds` array. Access control: Only the instructor (identified by instructorId) can modify a program.\n*   **CoachingLogs Collection:** Stores coaching logs. Nested under `/users/{userId}` to leverage hierarchical ownership. Only the user and the coach have access.\n*   **TournamentHistory Collection**: New collection nested under users to store their match results. Path-based ownership ensures privacy.\n*   **Announcements Collection**: New collection nested under teams to store broadcast messages. Only the coach can write, but any authenticated user can read them, which simplifies access for team members and followers."
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support required QAPs (Queries are not Filters), and maintain data integrity.\n\n*   **Users Collection:** Stores user profiles. Access is path-based, ensuring only the user can read/write their profile.\n*   **Tournaments Collection:** Stores tournament information.  No specific ownership, open access.\n*   **Teams Collection:** Stores team data. No specific ownership, open access.\n*   **Matches Collection:** Stores match details, nested under tournaments to leverage hierarchical data. No specific ownership, open access.\n*   **CoachingPrograms Collection:** Stores coaching programs. Each program has an instructor and students; instructorId is stored within the document. StudentIds are stored in the `studentIds` array. Access control: Only the instructor (identified by instructorId) can modify a program.\n*   **CoachingLogs Collection:** Stores coaching logs. Nested under `/users/{userId}` to leverage hierarchical ownership. Only the user and the coach have access.\n*   **TournamentHistory Collection**: New collection nested under users to store their match results. Path-based ownership ensures privacy.\n*   **Announcements Collection**: New collection nested under teams to store broadcast messages. Only the coach can write, but any authenticated user can read them, which simplifies access for team members and followers.\n*   **Events Collection**: New collection nested under teams to store scheduled events. Only the coach can write, but any authenticated user can read them, which simplifies access for team members."
   }
 }
-
-    
