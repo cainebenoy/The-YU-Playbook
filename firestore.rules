@@ -13,6 +13,7 @@
  * - /tournaments/{tournamentId}: Tournament information, publicly readable.
  * - /coachingPrograms/{coachingProgramId}: Coaching programs, owned by the instructor.
  * - /teams/{teamId}: Team data, publicly readable.
+ * - /teams/{teamId}/joinRequests/{userId}: Join requests, created by users, managed by coaches.
  * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
  * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
  * - /users/{userId}/tournamentHistory/{tournamentHistoryId}: Tournament history, owned by the user.
@@ -41,10 +42,10 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || request.auth != null; // Allow any auth user to read profiles
       allow list: if false; // Disallowing listing of all users for privacy
 
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId) && resource != null;
     }
@@ -62,7 +63,7 @@ service cloud.firestore {
 
       // Allow an authenticated user to update a document for team registration.
       // This is a simplified rule to fix the permission error.
-      // In production, this should be more granular to only allow changes to teamIds.
+      // In production, this should be more granular.
       allow update: if request.auth != null;
 
       // Standings can only be updated by server-side logic (which has no auth)
@@ -112,6 +113,31 @@ service cloud.firestore {
       allow create: if isCoach(request.resource.data.coachId);
       allow update: if isCoach(resource.data.coachId);
       allow delete: if isCoach(resource.data.coachId);
+
+       /**
+       * @description Secure join requests for a team.
+       * @path /teams/{teamId}/joinRequests/{userId}
+       * @allow (create) if request.auth.uid == userId
+       * @allow (read, update, delete) if isCoach(get(/databases/$(database)/documents/teams/$(teamId)).data.coachId)
+       * @principle User can create their own request. Coach can manage requests for their team.
+       */
+       match /joinRequests/{userId} {
+        function isRequestingUser() {
+          return request.auth.uid == userId;
+        }
+        
+        function isTeamCoach() {
+            let teamDoc = get(/databases/$(database)/documents/teams/$(teamId));
+            return teamDoc.data.coachId == request.auth.uid;
+        }
+
+        // Any authenticated user can create their own request
+        allow create: if request.auth != null && isRequestingUser();
+        // A user can read their own request to see its status
+        allow get: if request.auth != null && (isRequestingUser() || isTeamCoach());
+        // Only the coach can list, update or delete requests
+        allow list, update, delete: if request.auth != null && isTeamCoach();
+      }
     }
 
     /**

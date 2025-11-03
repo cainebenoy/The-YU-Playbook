@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useUser, useFirestore, useCollection, addDocumentNonBlocking, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, updateDocumentNonBlocking, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Trash2, UserPlus } from "lucide-react";
+import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
 import { collection, query, where, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -24,6 +24,8 @@ type Player = {
   name: string;
   number: number;
   imageId: string;
+  photoURL?: string;
+  displayName?: string;
 }
 
 type Team = {
@@ -34,6 +36,99 @@ type Team = {
   imageId: string;
   coachId: string;
 }
+
+type JoinRequest = {
+  id: string; // The user ID of the applicant
+  displayName: string;
+  photoURL?: string;
+  status: 'pending';
+}
+
+const ManageRequestsDialog = ({ team }: { team: Team }) => {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isOpen, setIsOpen] = useState(false);
+
+    const requestsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, `teams/${team.id}/joinRequests`), where('status', '==', 'pending'));
+    }, [firestore, team.id]);
+
+    const { data: requests, isLoading } = useCollection<JoinRequest>(requestsQuery);
+
+    const handleApprove = (request: JoinRequest) => {
+        if (!firestore) return;
+        
+        // 1. Add player to the team's roster
+        const teamDocRef = doc(firestore, 'teams', team.id);
+        const newPlayer = {
+            id: request.id,
+            name: request.displayName,
+            number: Math.floor(Math.random() * 100), // Assign a random number for now
+            imageId: 'user_avatar_1', // Default avatar
+            photoURL: request.photoURL,
+            displayName: request.displayName,
+        };
+        updateDocumentNonBlocking(teamDocRef, {
+            roster: arrayUnion(newPlayer)
+        });
+
+        // 2. Add team to user's profile/subcollection (optional, for future use)
+
+        // 3. Delete the join request
+        const requestDocRef = doc(firestore, `teams/${team.id}/joinRequests`, request.id);
+        deleteDocumentNonBlocking(requestDocRef);
+
+        toast({ title: "Player Approved", description: `${request.displayName} has been added to ${team.name}.` });
+    };
+
+    const handleDeny = (requestId: string) => {
+        if (!firestore) return;
+        const requestDocRef = doc(firestore, `teams/${team.id}/joinRequests`, requestId);
+        deleteDocumentNonBlocking(requestDocRef);
+        toast({ title: "Request Denied", description: "The join request has been denied." });
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Manage Requests ({requests?.length || 0})
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle>Join Requests for {team.name}</DialogTitle>
+                    <DialogDescription>Approve or deny requests from players wanting to join your team.</DialogDescription>
+                </DialogHeader>
+                <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+                    {isLoading && <Skeleton className="h-20 w-full" />}
+                    {requests && requests.length > 0 ? (
+                        requests.map(req => (
+                            <div key={req.id} className="flex items-center justify-between p-2 rounded-md border">
+                                <div className="flex items-center gap-3">
+                                    <Avatar>
+                                        {req.photoURL && <AvatarImage src={req.photoURL} alt={req.displayName} />}
+                                        <AvatarFallback>{req.displayName.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-medium">{req.displayName}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => handleDeny(req.id)}>Deny</Button>
+                                    <Button size="sm" onClick={() => handleApprove(req)}>Approve</Button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">No pending requests.</p>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 const TeamPageSkeleton = () => (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -72,7 +167,6 @@ export default function TeamsPage() {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    // When the selectedTeam data updates from Firestore, update the state
     if (selectedTeam && teams) {
       const updatedTeam = teams.find(t => t.id === selectedTeam.id);
       if (updatedTeam) {
@@ -95,7 +189,7 @@ export default function TeamsPage() {
         name: teamName,
         coachId: user.uid,
         roster: [],
-        imageId: 'team_logo_2' // default image
+        imageId: 'team_logo_2'
       };
       const teamsCollection = collection(firestore, 'teams');
       addDocumentNonBlocking(teamsCollection, newTeam);
@@ -116,11 +210,10 @@ export default function TeamsPage() {
 
     const teamDocRef = doc(firestore, 'teams', selectedTeam.id);
     const newPlayer = {
-      // Simple ID generation for client-side, consider UUIDs for robustness
       id: `player_${Date.now()}`,
       name: newPlayerName,
       number: parseInt(newPlayerNumber, 10),
-      imageId: 'user_avatar_1' // Default avatar
+      imageId: 'user_avatar_1'
     };
 
     updateDocumentNonBlocking(teamDocRef, {
@@ -139,7 +232,7 @@ export default function TeamsPage() {
     updateDocumentNonBlocking(teamDocRef, {
         roster: arrayRemove(player)
     });
-    toast({ title: "Player Removed", description: `${player.name} has been removed from the roster.` });
+    toast({ title: "Player Removed", description: `${player.name || player.displayName} has been removed from the roster.` });
   };
 
 
@@ -172,9 +265,10 @@ export default function TeamsPage() {
                     <CardDescription>{team.roster?.length || 0} players</CardDescription>
                   </div>
                 </CardHeader>
-                <CardFooter>
+                <CardContent className="flex flex-col gap-2">
                     <Button onClick={() => { setSelectedTeam(team); setIsRosterDialogOpen(true); }} className="w-full">Manage Roster</Button>
-                </CardFooter>
+                     <ManageRequestsDialog team={team} />
+                </CardContent>
               </Card>
             )})}
           </div>
@@ -224,15 +318,15 @@ export default function TeamsPage() {
                         </TableHeader>
                         <TableBody>
                             {selectedTeam.roster?.map(player => {
-                              const playerImage = placeholderImages.placeholderImages.find(p => p.id === player.imageId);
+                              const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
                               return (
                                 <TableRow key={player.id}>
                                     <TableCell className="flex items-center gap-2">
                                         <Avatar className="h-8 w-8">
-                                          {playerImage && <AvatarImage src={playerImage.imageUrl} alt={player.name} data-ai-hint={playerImage.imageHint} />}
-                                            <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+                                          {playerImage && <AvatarImage src={playerImage} alt={player.name || player.displayName || 'Player'} />}
+                                            <AvatarFallback>{(player.name || player.displayName || 'P').charAt(0)}</AvatarFallback>
                                         </Avatar>
-                                        {player.name}
+                                        {player.name || player.displayName}
                                     </TableCell>
                                     <TableCell>#{player.number}</TableCell>
                                     <TableCell className="text-right">
@@ -254,4 +348,3 @@ export default function TeamsPage() {
     </div>
   );
 }
-

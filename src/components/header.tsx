@@ -1,18 +1,19 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Trophy, Gamepad2, Users, ClipboardList } from "lucide-react";
-import { useUser } from "@/firebase";
-import { UserNav } from "./user-nav";
-import { YUPlaybookIcon } from "./icons";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Menu, Trophy, Gamepad2, Users, ClipboardList, Search } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { UserNav } from './user-nav';
+import { YUPlaybookIcon } from './icons';
 
 const navLinks = [
-  { href: "/tournaments", label: "Tournaments", icon: Trophy },
-  { href: "/live-scores", label: "Live Scores", icon: Gamepad2 },
-  { href: "/teams", label: "Teams", icon: Users },
-  { href: "/coaching", label: "Coaching", icon: ClipboardList },
+  { href: '/tournaments', label: 'Tournaments', icon: Trophy },
+  { href: '/live-scores', label: 'Live Scores', icon: Gamepad2 },
+  { href: '/teams', label: 'My Teams', icon: Users },
+  { href: '/teams/discover', label: 'Discover Teams', icon: Search },
+  { href: '/coaching', label: 'Coaching', icon: ClipboardList },
 ];
 
 export default function Header() {
@@ -29,7 +30,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center md:hidden">
-           <Sheet>
+          <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-6 w-6" />
@@ -39,14 +40,20 @@ export default function Header() {
             <SheetContent side="left">
               <div className="p-4">
                 <Link href="/" className="flex items-center space-x-2 mb-8">
-                   <YUPlaybookIcon className="h-6 w-6 text-primary" />
-                   <span className="font-bold font-headline text-lg">YU Playbook</span>
+                  <YUPlaybookIcon className="h-6 w-6 text-primary" />
+                  <span className="font-bold font-headline text-lg">
+                    YU Playbook
+                  </span>
                 </Link>
                 <nav className="flex flex-col space-y-4">
                   {navLinks.map(({ href, label, icon: Icon }) => (
-                    <Link key={href} href={href} className="flex items-center space-x-2 text-lg font-medium text-foreground hover:text-primary">
-                       <Icon className="h-5 w-5" />
-                       <span>{label}</span>
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex items-center space-x-2 text-lg font-medium text-foreground hover:text-primary"
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{label}</span>
                     </Link>
                   ))}
                 </nav>
@@ -54,15 +61,19 @@ export default function Header() {
             </SheetContent>
           </Sheet>
         </div>
-        
+
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
-            {navLinks.map(({ href, label }) => (
-              <Link key={href} href={href} className="transition-colors hover:text-primary">
-                {label}
-              </Link>
-            ))}
+          {navLinks.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="transition-colors hover:text-primary"
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
-        
+
         <div className="flex flex-1 items-center justify-end space-x-4">
           {isUserLoading ? (
             <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
