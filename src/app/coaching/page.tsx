@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, collectionGroup, orderBy } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +20,8 @@ type Player = {
   id: string;
   name: string;
   imageId: string;
+  displayName?: string;
+  photoURL?: string;
 };
 
 type Team = {
@@ -45,7 +47,7 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
 
   const logsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, `users/${player.id}/coachingLogs`), where('coachId', '==', coachId));
+    return query(collection(firestore, `users/${player.id}/coachingLogs`), where('coachId', '==', coachId), orderBy('date', 'desc'));
   }, [firestore, player.id, coachId]);
 
   const { data: logs, isLoading } = useCollection<CoachingLog>(logsQuery);
@@ -63,26 +65,27 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
         notes: newLogNotes,
     };
     addDocumentNonBlocking(logCollection, newLog);
-    toast({ title: 'Log Added', description: `A new coaching log has been created for ${player.name}.` });
+    toast({ title: 'Log Added', description: `A new coaching log has been created for ${player.name || player.displayName}.` });
     setNewLogNotes('');
   };
 
-  const playerImage = placeholderImages.placeholderImages.find(p => p.id === player.imageId);
+  const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
+  const playerName = player.name || player.displayName;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">View / Add Logs</Button>
+        <Button variant="outline" className="w-full">View / Add Logs</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-4">
             <Avatar>
-              {playerImage && <AvatarImage src={playerImage.imageUrl} alt={player.name} />}
-              <AvatarFallback>{player.name.charAt(0)}</AvatarFallback>
+              {playerImage && <AvatarImage src={playerImage} alt={playerName || 'Player'} />}
+              <AvatarFallback>{playerName ? playerName.charAt(0) : 'P'}</AvatarFallback>
             </Avatar>
             <div>
-              <DialogTitle className="font-headline text-2xl">Coaching Logs for {player.name}</DialogTitle>
+              <DialogTitle className="font-headline text-2xl">Coaching Logs for {playerName}</DialogTitle>
               <DialogDescription>Review past sessions and add new notes.</DialogDescription>
             </div>
           </div>
@@ -92,7 +95,7 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
             <Label htmlFor="new-log-notes">New Log Entry</Label>
             <Textarea
               id="new-log-notes"
-              placeholder={`Write your coaching notes for ${player.name}...`}
+              placeholder={`Write your coaching notes for ${playerName}...`}
               value={newLogNotes}
               onChange={(e) => setNewLogNotes(e.target.value)}
             />
@@ -104,10 +107,10 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
             <h3 className="font-semibold">History</h3>
             {isLoading && <Skeleton className="h-20 w-full" />}
             {logs && logs.length > 0 ? (
-              logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
+              logs.map(log => (
                 <div key={log.id} className="border-l-2 pl-4">
-                  <p className="text-sm text-muted-foreground">{format(new Date(log.date), "PPP")}</p>
-                  <p className="text-sm">{log.notes}</p>
+                  <p className="text-sm text-muted-foreground">{format(new Date(log.date), "PPP 'at' p")}</p>
+                  <p className="text-sm whitespace-pre-wrap">{log.notes}</p>
                 </div>
               ))
             ) : (
@@ -197,16 +200,17 @@ export default function CoachingPage() {
        {coachedPlayers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {coachedPlayers.map(player => {
-                const playerImage = placeholderImages.placeholderImages.find(p => p.id === player.imageId);
+                const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
+                const playerName = player.name || player.displayName;
                 return (
                     <Card key={player.id}>
                         <CardHeader className="flex flex-row items-center gap-4">
                             <Avatar className="h-12 w-12">
-                               {playerImage && <AvatarImage src={playerImage.imageUrl} alt={player.name} />}
-                               <AvatarFallback className="text-xl">{player.name.charAt(0)}</AvatarFallback>
+                               {playerImage && <AvatarImage src={playerImage} alt={playerName || 'Player'} />}
+                               <AvatarFallback className="text-xl">{playerName ? playerName.charAt(0) : 'P'}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <CardTitle>{player.name}</CardTitle>
+                                <CardTitle>{playerName}</CardTitle>
                                 <CardDescription>Player</CardDescription>
                             </div>
                         </CardHeader>
@@ -221,12 +225,12 @@ export default function CoachingPage() {
         <Card className="mt-6 text-center py-12">
             <CardHeader>
                 <CardTitle>No Players Found</CardTitle>
-                <CardDescription>You are not currently coaching any players.</CardDescription>
+                <CardDescription>You are not currently coaching any players on your teams.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p>Go to the "Teams" page to create a team and add players to your roster.</p>
+                <p>Go to the "My Teams" page to create a team and add players to your roster.</p>
                 <Button asChild className="mt-4">
-                    <a href="/teams">Manage Teams</a>
+                    <Link href="/teams">Manage Teams</Link>
                 </Button>
             </CardContent>
         </Card>

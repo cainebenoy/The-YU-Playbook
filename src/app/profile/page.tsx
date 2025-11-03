@@ -6,11 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useAuth, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { collection, query, doc, orderBy } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import placeholderImages from '@/lib/placeholder-images.json';
+import { format } from 'date-fns';
 
 const userAvatar = placeholderImages.placeholderImages.find(p => p.id === 'user_avatar_1');
 
@@ -153,9 +154,8 @@ const ProfileSkeleton = () => (
 type CoachingLog = {
   id: string;
   date: string;
-  focus: string;
   notes: string;
-  duration: string;
+  coachId: string; // We can use this to show who made the log
 };
 
 type TournamentHistory = {
@@ -183,7 +183,7 @@ export default function ProfilePage() {
 
   const coachingLogsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/coachingLogs`));
+    return query(collection(firestore, `users/${user.uid}/coachingLogs`), orderBy('date', 'desc'));
   }, [firestore, user]);
 
   const { data: coachingLogs, isLoading: coachingLoading } = useCollection<CoachingLog>(coachingLogsQuery);
@@ -209,7 +209,7 @@ export default function ProfilePage() {
   const displayAvatar = user.photoURL || userAvatar?.imageUrl;
 
   return (
-    <div className="bg-muted/40">
+    <div className="bg-muted/40 min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 mb-12">
           <Avatar className="h-24 w-24 border-4 border-background">
@@ -227,71 +227,69 @@ export default function ProfilePage() {
           <EditProfileDialog user={user} onProfileUpdate={handleProfileUpdate} />
         </div>
 
-        <Tabs defaultValue="history">
+        <Tabs defaultValue="coaching">
           <TabsList className="grid w-full grid-cols-2 md:w-96">
-            <TabsTrigger value="history">Tournament History</TabsTrigger>
             <TabsTrigger value="coaching">Coaching Logs</TabsTrigger>
+            <TabsTrigger value="history">Tournament History</TabsTrigger>
           </TabsList>
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tournament History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {historyLoading ? <Skeleton className="h-40 w-full" /> : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tournament</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead>Result</TableHead>
-                        <TableHead>Record</TableHead>
-                        <TableHead className="text-right">Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tournamentHistory?.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.tournamentName}</TableCell>
-                          <TableCell>{item.team}</TableCell>
-                          <TableCell>{item.result}</TableCell>
-                          <TableCell>{item.record}</TableCell>
-                          <TableCell className="text-right">{item.date}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
           <TabsContent value="coaching">
             <Card>
               <CardHeader>
                 <CardTitle>Coaching Logs</CardTitle>
+                <CardDescription>A record of coaching sessions and feedback.</CardDescription>
               </CardHeader>
               <CardContent>
                 {coachingLoading ? <Skeleton className="h-40 w-full" /> : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Focus</TableHead>
-                        <TableHead>Notes</TableHead>
-                        <TableHead className="text-right">Duration</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {coachingLogs?.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-medium">{log.date}</TableCell>
-                          <TableCell>{log.focus}</TableCell>
-                          <TableCell className="max-w-sm truncate">{log.notes}</TableCell>
-                          <TableCell className="text-right">{log.duration}</TableCell>
-                        </TableRow>
+                  coachingLogs && coachingLogs.length > 0 ? (
+                    <div className="space-y-4">
+                      {coachingLogs.map((log) => (
+                        <div key={log.id} className="border-l-2 pl-4">
+                          <p className="text-sm text-muted-foreground">{format(new Date(log.date), "PPP 'at' p")}</p>
+                          <p className="text-sm whitespace-pre-wrap">{log.notes}</p>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">No coaching logs found.</p>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tournament History</CardTitle>
+                <CardDescription>Your past tournament results and records.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {historyLoading ? <Skeleton className="h-40 w-full" /> : (
+                  tournamentHistory && tournamentHistory.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tournament</TableHead>
+                          <TableHead>Team</TableHead>
+                          <TableHead>Result</TableHead>
+                          <TableHead>Record</TableHead>
+                          <TableHead className="text-right">Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tournamentHistory?.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.tournamentName}</TableCell>
+                            <TableCell>{item.team}</TableCell>
+                            <TableCell>{item.result}</TableCell>
+                            <TableCell>{item.record}</TableCell>
+                            <TableCell className="text-right">{item.date}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                     <p className="text-center text-muted-foreground py-8">No tournament history found.</p>
+                  )
                 )}
               </CardContent>
             </Card>
