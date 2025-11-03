@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUser, useAuth } from "@/firebase";
-import { LogOut, User, Users, Trophy } from "lucide-react";
+import { LogOut, User, Users, Trophy, ClipboardEdit } from "lucide-react";
 import Link from "next/link";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { signOut as firebaseSignOut } from "firebase/auth";
@@ -86,6 +86,16 @@ export function UserNav() {
               <span>Tournaments</span>
             </Link>
           </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+         <DropdownMenuGroup>
+            <DropdownMenuLabel>Admin</DropdownMenuLabel>
+             <DropdownMenuItem asChild>
+                <Link href="/admin/scoring">
+                    <ClipboardEdit className="mr-2 h-4 w-4" />
+                    <span>Scoring</span>
+                </Link>
+            </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
