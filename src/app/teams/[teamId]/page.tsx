@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -10,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Users, Shirt } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 type Player = {
   id: string;
@@ -117,7 +119,7 @@ export default function TeamDetailPage() {
             {team.roster?.map(player => {
                 const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
                 return (
-                <div key={player.id} className="flex flex-col items-center text-center gap-3 group">
+                <Link href={`/players/${player.id}`} key={player.id} className="flex flex-col items-center text-center gap-3 group">
                     <Avatar className="h-28 w-28 border-4 border-transparent group-hover:border-primary/50 transition-all duration-300">
                         {playerImage && <AvatarImage src={playerImage} alt={player.name || player.displayName || 'Player'} />}
                         <AvatarFallback className="text-4xl bg-muted group-hover:bg-primary/10 transition-colors">{(player.name || player.displayName || 'P').charAt(0)}</AvatarFallback>
@@ -128,7 +130,7 @@ export default function TeamDetailPage() {
                             <Shirt className="h-4 w-4" /> Jersey #{player.number}
                         </p>
                     </div>
-                </div>
+                </Link>
                 )
             })}
             </CardContent>
@@ -137,3 +139,4 @@ export default function TeamDetailPage() {
     </div>
   );
 }
+
