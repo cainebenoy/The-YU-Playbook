@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUser, useAuth } from "@/firebase";
-import { LogOut, User, Users, Trophy, ClipboardList, ClipboardEdit } from "lucide-react";
+import { LogOut, User, Users, Trophy, ClipboardList, ClipboardEdit, PlusSquare } from "lucide-react";
 import Link from "next/link";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { signOut as firebaseSignOut } from "firebase/auth";
@@ -100,6 +100,12 @@ export function UserNav() {
                 <Link href="/admin/scoring">
                     <ClipboardEdit className="mr-2 h-4 w-4" />
                     <span>Scoring</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/admin/tournaments">
+                    <PlusSquare className="mr-2 h-4 w-4" />
+                    <span>Create Tournament</span>
                 </Link>
             </DropdownMenuItem>
         </DropdownMenuGroup>
