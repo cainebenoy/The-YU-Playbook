@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck, Eye } from "lucide-react";
+import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck, Eye, Share2 } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
 import { collection, query, where, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -176,6 +176,15 @@ export default function TeamsPage() {
     }
   }, [teams, selectedTeam]);
 
+  const handleCopyLink = (teamId: string) => {
+    const url = `${window.location.origin}/teams/${teamId}`;
+    navigator.clipboard.writeText(url);
+    toast({
+        title: "Link Copied!",
+        description: "The public team page URL has been copied to your clipboard.",
+    });
+  }
+
   if (isUserLoading || !user || teamsLoading) {
     return <TeamPageSkeleton />;
   }
@@ -241,7 +250,7 @@ export default function TeamsPage() {
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <h1 className="text-4xl font-headline font-bold">Team Management</h1>
-        <p className="text-muted-foreground mt-2">Manage your teams, rosters, and registrations.</p>
+        <p className="text-muted-foreground mt-2">Manage your teams, rosters, and public pages.</p>
       </div>
 
       <Tabs defaultValue="my-teams">
@@ -258,27 +267,28 @@ export default function TeamsPage() {
               return (
               <Card key={team.id}>
                 <CardHeader>
-                    <Link href={`/teams/${team.id}`} className='hover:opacity-80 transition-opacity'>
-                        <div className="flex flex-row items-center gap-4">
-                        {teamImage && (
-                            <Image src={teamImage.imageUrl} alt={team.name} width={60} height={60} className="rounded-md" data-ai-hint={teamImage.imageHint} />
-                        )}
-                        <div>
-                            <CardTitle className="font-headline">{team.name}</CardTitle>
-                            <CardDescription>{team.roster?.length || 0} players</CardDescription>
-                        </div>
-                        </div>
-                    </Link>
+                    <div className="flex flex-row items-center gap-4">
+                    {teamImage && (
+                        <Image src={teamImage.imageUrl} alt={team.name} width={60} height={60} className="rounded-md" data-ai-hint={teamImage.imageHint} />
+                    )}
+                    <div>
+                        <CardTitle className="font-headline">{team.name}</CardTitle>
+                        <CardDescription>{team.roster?.length || 0} players</CardDescription>
+                    </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
                     <Button onClick={() => { setSelectedTeam(team); setIsRosterDialogOpen(true); }} className="w-full">Manage Roster</Button>
                      <ManageRequestsDialog team={team} />
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex-col gap-2">
                     <Button asChild variant="outline" className="w-full">
                         <Link href={`/teams/${team.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Team Page
+                            <Eye className="mr-2 h-4 w-4" /> View Public Page
                         </Link>
+                    </Button>
+                    <Button variant="secondary" className="w-full" onClick={() => handleCopyLink(team.id)}>
+                        <Share2 className="mr-2 h-4 w-4" /> Share Link
                     </Button>
                 </CardFooter>
               </Card>
