@@ -9,11 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { Users, Shirt, Megaphone } from 'lucide-react';
+import { Users, Shirt, Megaphone, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 
+
+type PlayerRole = 'Player' | 'Captain' | 'Handler' | 'Cutter';
 
 type Player = {
   id: string;
@@ -22,6 +24,7 @@ type Player = {
   imageId: string;
   photoURL?: string;
   displayName?: string;
+  role: PlayerRole;
 }
 
 type Team = {
@@ -159,9 +162,14 @@ export default function TeamDetailPage() {
                             </Avatar>
                             <div className='mt-2'>
                                 <p className="font-semibold text-lg">{player.name || player.displayName}</p>
-                                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-                                    <Shirt className="h-4 w-4" /> Jersey #{player.number}
+                                 <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                                    <Shirt className="h-3 w-3" /> Jersey #{player.number}
                                 </p>
+                                {player.role && player.role !== 'Player' && (
+                                     <p className="text-xs text-primary font-semibold flex items-center justify-center gap-1 mt-1">
+                                        <Star className="h-3 w-3" /> {player.role}
+                                     </p>
+                                )}
                             </div>
                         </Link>
                         )
@@ -202,7 +210,3 @@ export default function TeamDetailPage() {
     </div>
   );
 }
-
-
-
-    

@@ -14,13 +14,17 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Trash2, UserPlus, Mail, ShieldCheck, Eye, Share2, Megaphone } from "lucide-react";
+import { PlusCircle, Trash2, UserPlus, Mail, Eye, Share2, Megaphone } from "lucide-react";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
-import { collection, query, where, doc, arrayUnion, arrayRemove, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, arrayUnion, arrayRemove, orderBy } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+
+type PlayerRole = 'Player' | 'Captain' | 'Handler' | 'Cutter';
 
 type Player = {
   id: string;
@@ -29,12 +33,12 @@ type Player = {
   imageId: string;
   photoURL?: string;
   displayName?: string;
+  role: PlayerRole;
 }
 
 type Team = {
   id: string;
   name: string;
-  captain: string;
   roster: Player[];
   imageId: string;
   coachId: string;
@@ -149,23 +153,20 @@ const ManageRequestsDialog = ({ team }: { team: Team }) => {
     const handleApprove = (request: JoinRequest) => {
         if (!firestore) return;
         
-        // 1. Add player to the team's roster
         const teamDocRef = doc(firestore, 'teams', team.id);
-        const newPlayer = {
+        const newPlayer: Player = {
             id: request.id,
             name: request.displayName,
-            number: Math.floor(Math.random() * 100), // Assign a random number for now
-            imageId: 'user_avatar_1', // Default avatar
+            number: Math.floor(Math.random() * 100),
+            imageId: 'user_avatar_1',
             photoURL: request.photoURL,
             displayName: request.displayName,
+            role: 'Player', // Assign default role
         };
         updateDocumentNonBlocking(teamDocRef, {
             roster: arrayUnion(newPlayer)
         });
 
-        // 2. Add team to user's profile/subcollection (optional, for future use)
-
-        // 3. Delete the join request
         const requestDocRef = doc(firestore, `teams/${team.id}/joinRequests`, request.id);
         deleteDocumentNonBlocking(requestDocRef);
 
@@ -211,7 +212,7 @@ const ManageRequestsDialog = ({ team }: { team: Team }) => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-center text-muted-foreground py-8">No pending requests.</p>
+                        !isLoading && <p className="text-center text-muted-foreground py-8">No pending requests.</p>
                     )}
                 </div>
             </DialogContent>
@@ -308,11 +309,12 @@ export default function TeamsPage() {
     }
 
     const teamDocRef = doc(firestore, 'teams', selectedTeam.id);
-    const newPlayer = {
+    const newPlayer: Player = {
       id: `player_${Date.now()}`,
       name: newPlayerName,
       number: parseInt(newPlayerNumber, 10),
-      imageId: 'user_avatar_1'
+      imageId: 'user_avatar_1',
+      role: 'Player', // Default role
     };
 
     updateDocumentNonBlocking(teamDocRef, {
@@ -333,6 +335,24 @@ export default function TeamsPage() {
     });
     toast({ title: "Player Removed", description: `${player.name || player.displayName} has been removed from the roster.` });
   };
+  
+  const handleRoleChange = (playerId: string, newRole: PlayerRole) => {
+    if (!firestore || !selectedTeam) return;
+
+    const updatedRoster = selectedTeam.roster.map(p => 
+        p.id === playerId ? { ...p, role: newRole } : p
+    );
+
+    const teamDocRef = doc(firestore, 'teams', selectedTeam.id);
+    updateDocumentNonBlocking(teamDocRef, {
+        roster: updatedRoster
+    });
+    
+    toast({
+        title: "Role Updated",
+        description: `The role has been updated to ${newRole}.`
+    });
+  }
 
 
   return (
@@ -406,10 +426,10 @@ export default function TeamsPage() {
 
       <Dialog open={isRosterDialogOpen} onOpenChange={setIsRosterDialogOpen}>
         {selectedTeam && (
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle className="font-headline text-2xl">Manage Roster: {selectedTeam.name}</DialogTitle>
-                    <DialogDescription>Add or remove players from your team.</DialogDescription>
+                    <DialogDescription>Add or remove players from your team and manage their roles.</DialogDescription>
                 </DialogHeader>
                 <div className="my-4">
                     <h3 className="font-semibold mb-2">Add New Player</h3>
@@ -425,6 +445,7 @@ export default function TeamsPage() {
                             <TableRow>
                                 <TableHead>Player</TableHead>
                                 <TableHead>Number</TableHead>
+                                <TableHead>Role</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -441,6 +462,19 @@ export default function TeamsPage() {
                                         {player.name || player.displayName}
                                     </TableCell>
                                     <TableCell>#{player.number}</TableCell>
+                                    <TableCell>
+                                      <Select value={player.role} onValueChange={(newRole: PlayerRole) => handleRoleChange(player.id, newRole)}>
+                                        <SelectTrigger className="w-32">
+                                          <SelectValue placeholder="Select a role" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Player">Player</SelectItem>
+                                          <SelectItem value="Captain">Captain</SelectItem>
+                                          <SelectItem value="Handler">Handler</SelectItem>
+                                          <SelectItem value="Cutter">Cutter</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => handleRemovePlayer(player)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                     </TableCell>
@@ -460,5 +494,3 @@ export default function TeamsPage() {
     </div>
   );
 }
-
-    
