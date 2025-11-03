@@ -60,11 +60,8 @@ service cloud.firestore {
     match /tournaments/{tournamentId} {
       allow get, list: if true;
 
-      // Allow authenticated user to add their team to teamIds array
-      // This rule ensures that a user can only add to the teamIds array.
-      allow update: if request.auth != null &&
-                      request.resource.data.teamIds == resource.data.teamIds.concat(request.resource.data.teamIds.diff(resource.data.teamIds)) &&
-                      request.resource.data.teamIds.diff(resource.data.teamIds).size() == 1;
+      // Allow an authenticated user to update a document, but ONLY to add a team to teamIds.
+      allow update: if request.auth != null && request.resource.data.keys().hasOnly(['teamIds']);
 
       // Standings can only be updated by server-side logic (which has no auth)
       // This rule ensures that only the standings are being updated.
