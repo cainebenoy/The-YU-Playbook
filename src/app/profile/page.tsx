@@ -190,7 +190,7 @@ export default function ProfilePage() {
 
    const tournamentHistoryQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/tournamentHistory`));
+    return query(collection(firestore, `users/${user.uid}/tournamentHistory`), orderBy('date', 'desc'));
   }, [firestore, user]);
 
   const { data: tournamentHistory, isLoading: historyLoading } = useCollection<TournamentHistory>(tournamentHistoryQuery);
@@ -271,7 +271,7 @@ export default function ProfilePage() {
                           <TableHead>Tournament</TableHead>
                           <TableHead>Team</TableHead>
                           <TableHead>Result</TableHead>
-                          <TableHead>Record</TableHead>
+                          <TableHead>Score</TableHead>
                           <TableHead className="text-right">Date</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -282,7 +282,7 @@ export default function ProfilePage() {
                             <TableCell>{item.team}</TableCell>
                             <TableCell>{item.result}</TableCell>
                             <TableCell>{item.record}</TableCell>
-                            <TableCell className="text-right">{item.date}</TableCell>
+                            <TableCell className="text-right">{format(new Date(item.date), 'PP')}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

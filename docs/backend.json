@@ -264,6 +264,46 @@
             }
         },
         "required": ["userId", "displayName", "status"]
+    },
+     "TournamentHistory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TournamentHistory",
+      "description": "Represents a user's participation in a single tournament match.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User."
+        },
+        "tournamentName": {
+          "type": "string",
+          "description": "Name of the tournament."
+        },
+        "team": {
+          "type": "string",
+          "description": "Name of the team the user played for."
+        },
+        "result": {
+          "type": "string",
+          "description": "Outcome of the match (e.g., Win, Loss, Draw)."
+        },
+        "record": {
+          "type": "string",
+          "description": "The final score of the match (e.g., 15-12)."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the match.",
+          "format": "date"
+        }
+      },
+      "required": [
+        "userId",
+        "tournamentName",
+        "team",
+        "result",
+        "date"
+      ]
     }
   },
   "auth": {
@@ -397,8 +437,28 @@
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/tournamentHistory/{tournamentHistoryId}",
+        "definition": {
+          "entityName": "TournamentHistory",
+          "schema": {
+            "$ref": "#/backend/entities/TournamentHistory"
+          },
+          "description": "Stores a user's tournament history. Path-based ownership: only the user can access their own history.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "tournamentHistoryId",
+              "description": "The unique identifier of the tournament history entry."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support required QAPs (Queries are not Filters), and maintain data integrity.\n\n*   **Users Collection:** Stores user profiles. Access is path-based, ensuring only the user can read/write their profile.\n*   **Tournaments Collection:** Stores tournament information.  No specific ownership, open access.\n*   **Teams Collection:** Stores team data. No specific ownership, open access.\n*   **Matches Collection:** Stores match details, nested under tournaments to leverage hierarchical data. No specific ownership, open access.\n*   **CoachingPrograms Collection:** Stores coaching programs. Each program has an instructor and students; instructorId is stored within the document. StudentIds are stored in the `studentIds` array. Access control: Only the instructor (identified by instructorId) can modify a program.\n*   **CoachingLogs Collection:** Stores coaching logs. Nested under `/users/{userId}` to leverage hierarchical ownership. Only the user and the coach have access.\n\n**Authorization Independence:**\n\n*   `CoachingPrograms`: The `instructorId` field within each coaching program document ensures that security rules can validate the instructor's identity without needing to perform additional `get()` operations to retrieve the instructor's information from a parent document. The studentIds array gives a list of students without requiring `get()` operations to confirm they are a student.\n*   `CoachingLogs`: Because the collection is nested under the `users/{userId}` collection, the user ID is immediately available for simple path-based ownership. `coachId` is stored within the document to determine the coach.\n\n**QAPs (Queries are not Filters):**\n\n*   The segregation of data based on ownership (e.g., `/users/{userId}/coachingLogs`) allows for efficient and secure list operations. Rules can easily check `request.auth.uid == userId` to ensure that only the logged-in user can access their data. No filtering is needed within the rules.\n*   For collections without ownership (e.g., `/tournaments`, `/teams`, `/matches`), rules can be written to allow public read access, while still restricting write access based on administrative roles (if needed) stored in a separate `/roles_admin/{uid}` collection."
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support required QAPs (Queries are not Filters), and maintain data integrity.\n\n*   **Users Collection:** Stores user profiles. Access is path-based, ensuring only the user can read/write their profile.\n*   **Tournaments Collection:** Stores tournament information.  No specific ownership, open access.\n*   **Teams Collection:** Stores team data. No specific ownership, open access.\n*   **Matches Collection:** Stores match details, nested under tournaments to leverage hierarchical data. No specific ownership, open access.\n*   **CoachingPrograms Collection:** Stores coaching programs. Each program has an instructor and students; instructorId is stored within the document. StudentIds are stored in the `studentIds` array. Access control: Only the instructor (identified by instructorId) can modify a program.\n*   **CoachingLogs Collection:** Stores coaching logs. Nested under `/users/{userId}` to leverage hierarchical ownership. Only the user and the coach have access.\n*   **TournamentHistory Collection**: New collection nested under users to store their match results. Path-based ownership ensures privacy.\n\n**Authorization Independence:**\n\n*   `CoachingPrograms`: The `instructorId` field within each coaching program document ensures that security rules can validate the instructor's identity without needing to perform additional `get()` operations to retrieve the instructor's information from a parent document. The studentIds array gives a list of students without requiring `get()` operations to confirm they are a student.\n*   `CoachingLogs`: Because the collection is nested under the `users/{userId}` collection, the user ID is immediately available for simple path-based ownership. `coachId` is stored within the document to determine the coach.\n\n**QAPs (Queries are not Filters):**\n\n*   The segregation of data based on ownership (e.g., `/users/{userId}/coachingLogs`) allows for efficient and secure list operations. Rules can easily check `request.auth.uid == userId` to ensure that only the logged-in user can access their data. No filtering is needed within the rules.\n*   For collections without ownership (e.g., `/tournaments`, `/teams`, `/matches`), rules can be written to allow public read access, while still restricting write access based on administrative roles (if needed) stored in a separate `/roles_admin/{uid}` collection."
   }
 }

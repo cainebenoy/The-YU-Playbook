@@ -2,10 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { format } from 'date-fns';
 
-// Initialize Firebase Admin SDK
-// This uses service account credentials for backend access, which you need to create
-// in your Firebase project settings and provide as environment variables.
 if (!getApps().length) {
   const serviceAccount = {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -19,11 +17,17 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
+type Team = {
+    id: string;
+    name: string;
+    roster: { id: string; name: string; }[];
+}
+
 type Match = {
   id: string;
   tournamentId: string;
-  teamA: { name: string; score: number; };
-  teamB: { name: string; score: number; };
+  teamA: { id: string; name: string; score: number; };
+  teamB: { id: string; name: string; score: number; };
   status: string;
 }
 
@@ -32,13 +36,52 @@ type Standing = {
   team: string;
   wins: number;
   losses: number;
+  draws: number;
   points: number;
 }
+
+type TournamentHistory = {
+    tournamentName: string;
+    team: string;
+    result: 'Win' | 'Loss' | 'Draw';
+    record: string;
+    date: string;
+    userId: string;
+}
+
+const createTournamentHistory = async (
+    teamId: string,
+    result: 'Win' | 'Loss' | 'Draw',
+    record: string,
+    tournamentName: string
+) => {
+    const teamDoc = await db.collection('teams').doc(teamId).get();
+    if (!teamDoc.exists) return;
+
+    const teamData = teamDoc.data() as Team;
+    const batch = db.batch();
+    
+    if (teamData.roster && teamData.roster.length > 0) {
+        teamData.roster.forEach(player => {
+            const historyDocRef = db.collection('users').doc(player.id).collection('tournamentHistory').doc();
+            const historyEntry: TournamentHistory = {
+                tournamentName: tournamentName,
+                team: teamData.name,
+                result: result,
+                record: record,
+                date: format(new Date(), 'yyyy-MM-dd'),
+                userId: player.id,
+            };
+            batch.set(historyDocRef, historyEntry);
+        });
+    }
+    await batch.commit();
+}
+
 
 export async function POST(req: NextRequest) {
   const { tournamentId, secret } = await req.json();
 
-  // Basic security: check for a secret key
   if (secret !== process.env.STANDINGS_API_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -48,69 +91,91 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 1. Fetch all matches for the tournament that are 'Final'
-    const matchesSnapshot = await db.collection('matches')
-      .where('tournamentId', '==', tournamentId)
-      .where('status', '==', 'Final')
-      .get();
-
-    const matches = matchesSnapshot.docs.map(doc => doc.data() as Match);
-
-    // 2. Fetch the tournament document to get the list of all registered teams
     const tournamentDoc = await db.collection('tournaments').doc(tournamentId).get();
     if (!tournamentDoc.exists) {
         return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
     }
     const tournamentData = tournamentDoc.data();
+    if (!tournamentData) {
+       return NextResponse.json({ error: 'Tournament data not found' }, { status: 404 });
+    }
+    
+    const matchesSnapshot = await db.collection('matches')
+      .where('tournamentId', '==', tournamentId)
+      .where('status', '==', 'Final')
+      .get();
+
+    const matches = matchesSnapshot.docs.map(doc => ({...doc.data(), id: doc.id }) as Match);
+    
     const teamIds = tournamentData?.teamIds || [];
 
-    // Fetch team names
     const teamDocs = await Promise.all(teamIds.map((id: string) => db.collection('teams').doc(id).get()));
     const teamIdToNameMap = new Map(teamDocs.map(doc => [doc.id, doc.data()?.name]));
 
-
-    // 3. Calculate stats for each team
-    const stats: { [key: string]: { wins: number, losses: number, points: number } } = {};
+    const stats: { [key: string]: { wins: number, losses: number, draws: number, points: number } } = {};
     
-    // Initialize stats for all registered teams
     teamIdToNameMap.forEach(name => {
         if(name) {
-            stats[name] = { wins: 0, losses: 0, points: 0 };
+            stats[name] = { wins: 0, losses: 0, draws: 0, points: 0 };
         }
     });
+
+    const historyCreationPromises: Promise<void>[] = [];
 
     matches.forEach(match => {
       const teamAName = match.teamA.name;
       const teamBName = match.teamB.name;
+      const teamAId = match.teamA.id;
+      const teamBId = match.teamB.id;
       const scoreA = match.teamA.score;
       const scoreB = match.teamB.score;
 
       if (scoreA > scoreB) { // Team A wins
-        stats[teamAName].wins += 1;
-        stats[teamAName].points += 3;
-        stats[teamBName].losses += 1;
+        if(stats[teamAName]) {
+            stats[teamAName].wins += 1;
+            stats[teamAName].points += 3;
+        }
+        if(stats[teamBName]) {
+            stats[teamBName].losses += 1;
+        }
+        historyCreationPromises.push(createTournamentHistory(teamAId, 'Win', `${scoreA}-${scoreB}`, tournamentData.name));
+        historyCreationPromises.push(createTournamentHistory(teamBId, 'Loss', `${scoreB}-${scoreA}`, tournamentData.name));
+
       } else if (scoreB > scoreA) { // Team B wins
-        stats[teamBName].wins += 1;
-        stats[teamBName].points += 3;
-        stats[teamAName].losses += 1;
+        if(stats[teamBName]) {
+            stats[teamBName].wins += 1;
+            stats[teamBName].points += 3;
+        }
+        if(stats[teamAName]) {
+            stats[teamAName].losses += 1;
+        }
+        historyCreationPromises.push(createTournamentHistory(teamBId, 'Win', `${scoreB}-${scoreA}`, tournamentData.name));
+        historyCreationPromises.push(createTournamentHistory(teamAId, 'Loss', `${scoreA}-${scoreB}`, tournamentData.name));
       } else { // Draw
-        stats[teamAName].points += 1;
-        stats[teamBName].points += 1;
+        if(stats[teamAName]) {
+            stats[teamAName].draws += 1;
+            stats[teamAName].points += 1;
+        }
+        if(stats[teamBName]) {
+            stats[teamBName].draws += 1;
+            stats[teamBName].points += 1;
+        }
+        historyCreationPromises.push(createTournamentHistory(teamAId, 'Draw', `${scoreA}-${scoreB}`, tournamentData.name));
+        historyCreationPromises.push(createTournamentHistory(teamBId, 'Draw', `${scoreB}-${scoreA}`, tournamentData.name));
       }
     });
 
-    // 4. Create and sort standings array
+    await Promise.all(historyCreationPromises);
+    
     const newStandings: Omit<Standing, 'rank'>[] = Object.entries(stats).map(([team, data]) => ({
       team,
       ...data,
     }));
 
     newStandings.sort((a, b) => {
-      // Sort by points descending, then by wins descending
-      if (b.points !== a.points) {
-        return b.points - a.points;
-      }
-      return b.wins - a.wins;
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return a.losses - b.losses;
     });
 
     const rankedStandings: Standing[] = newStandings.map((item, index) => ({
@@ -118,7 +183,6 @@ export async function POST(req: NextRequest) {
       rank: index + 1,
     }));
 
-    // 5. Update the tournament document in Firestore
     await db.collection('tournaments').doc(tournamentId).update({
       standings: rankedStandings,
     });
