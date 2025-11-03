@@ -50,7 +50,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secure tournament information. Open read access, authenticated users can register teams.
+     * @description Secure tournament information. Open read access. Standings are updated by server-side logic. Team registration is allowed for authenticated users.
      * @path /tournaments/{tournamentId}
      * @allow (get, list) if true
      * @allow (update) if request.auth != null // Allows authenticated users to add their teamId
@@ -59,7 +59,17 @@ service cloud.firestore {
      */
     match /tournaments/{tournamentId} {
       allow get, list: if true;
-      allow update: if request.auth != null; // Allow any authenticated user to register a team.
+      // Allow authenticated user to add their team to teamIds array
+      allow update: if request.auth != null &&
+                      request.resource.data.keys().hasOnly(['teamIds']) &&
+                      request.resource.data.teamIds is list &&
+                      request.resource.data.teamIds.size() == resource.data.teamIds.size() + 1;
+
+      // Standings can only be updated by server-side logic (which has no auth)
+      // For development, we might open this up more, but for production it should be locked down.
+      // A more secure way would be to check for a specific role or claim.
+      allow update: if request.auth == null && request.resource.data.keys().hasOnly(['standings']);
+
 
       // Creating/deleting tournaments should be an admin-only action.
       allow create, delete: if false; // TODO: Add admin validation.

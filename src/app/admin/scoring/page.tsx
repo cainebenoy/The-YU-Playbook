@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -9,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 type TeamScore = {
   name: string;
@@ -20,7 +23,31 @@ type LiveScore = {
   teamA: TeamScore;
   teamB: TeamScore;
   status: string;
+  tournamentId: string;
 };
+
+const triggerStandingsUpdate = async (tournamentId: string) => {
+  try {
+    const res = await fetch('/api/update-standings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tournamentId,
+        secret: process.env.NEXT_PUBLIC_STANDINGS_API_SECRET,
+      }),
+    });
+    if (!res.ok) {
+        throw new Error('Failed to trigger standings update.');
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Standings update trigger failed:", error);
+    throw error;
+  }
+};
+
 
 const ScoreUpdateCard = ({ game }: { game: LiveScore }) => {
   const { toast } = useToast();
@@ -28,9 +55,11 @@ const ScoreUpdateCard = ({ game }: { game: LiveScore }) => {
   const [scoreA, setScoreA] = useState(game.teamA.score.toString());
   const [scoreB, setScoreB] = useState(game.teamB.score.toString());
   const [status, setStatus] = useState(game.status);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!firestore) return;
+    setIsSubmitting(true);
     const matchDocRef = doc(firestore, 'matches', game.id);
     const newScoreA = parseInt(scoreA, 10);
     const newScoreB = parseInt(scoreB, 10);
@@ -41,6 +70,7 @@ const ScoreUpdateCard = ({ game }: { game: LiveScore }) => {
         title: 'Invalid Score',
         description: 'Scores must be numbers.',
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -56,6 +86,27 @@ const ScoreUpdateCard = ({ game }: { game: LiveScore }) => {
       title: 'Score Updated',
       description: `Match ${game.teamA.name} vs ${game.teamB.name} has been updated.`,
     });
+
+     if (status === 'Final') {
+      toast({
+        title: 'Final Score Submitted',
+        description: 'Triggering tournament standings update...',
+      });
+      try {
+        await triggerStandingsUpdate(game.tournamentId);
+        toast({
+          title: 'Standings Updated',
+          description: 'The tournament standings have been recalculated successfully.',
+        });
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Standings Update Failed',
+          description: 'Could not update standings. Please check the server logs.',
+        });
+      }
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -74,6 +125,7 @@ const ScoreUpdateCard = ({ game }: { game: LiveScore }) => {
               type="number"
               value={scoreA}
               onChange={(e) => setScoreA(e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
           <div className="space-y-2">
@@ -83,20 +135,26 @@ const ScoreUpdateCard = ({ game }: { game: LiveScore }) => {
               type="number"
               value={scoreB}
               onChange={(e) => setScoreB(e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor={`status-${game.id}`}>Match Status</Label>
-          <Input
-            id={`status-${game.id}`}
-            value={status}
-            placeholder="e.g., Final, Halftime"
-            onChange={(e) => setStatus(e.target.value)}
-          />
+          <Select value={status} onValueChange={setStatus} disabled={isSubmitting}>
+              <SelectTrigger id={`status-${game.id}`}>
+                  <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Halftime">Halftime</SelectItem>
+                  <SelectItem value="Final">Final</SelectItem>
+              </SelectContent>
+          </Select>
         </div>
-        <Button onClick={handleUpdate} className="w-full">
-          Update Match
+        <Button onClick={handleUpdate} className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Updating...' : 'Update Match'}
         </Button>
       </CardContent>
     </Card>
