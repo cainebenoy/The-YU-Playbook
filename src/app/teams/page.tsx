@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useAuth } from "@/hooks/useAuth";
+import { useUser, useFirestore, useCollection, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,9 +13,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle, Trash2, UserPlus } from "lucide-react";
-import { teams as mockTeams } from "@/lib/placeholder-data";
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from "@/components/ui/skeleton";
+import { collection, query, where } from 'firebase/firestore';
+import { useToast } from "@/hooks/use-toast";
+
+type Player = {
+  id: string;
+  name: string;
+  number: number;
+  imageId: string;
+}
+
+type Team = {
+  id: string;
+  name: string;
+  captain: string;
+  roster: Player[];
+  imageId: string;
+  coachId: string;
+}
 
 const TeamPageSkeleton = () => (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -30,33 +47,45 @@ const TeamPageSkeleton = () => (
 )
 
 export default function TeamsPage() {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
-  const [teams, setTeams] = useState(mockTeams);
-  const [selectedTeam, setSelectedTeam] = useState<typeof mockTeams[0] | null>(null);
+  const { toast } = useToast();
+  
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
+  const teamsQuery = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'teams'), where('coachId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: teams, isLoading: teamsLoading } = useCollection<Team>(teamsQuery);
+  
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isUserLoading && !user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
 
-  if (loading || !user) {
+  if (isUserLoading || !user || teamsLoading) {
     return <TeamPageSkeleton />;
   }
 
   const handleRegisterTeam = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!firestore || !user) return;
+
     const teamName = event.currentTarget.teamName.value;
     if (teamName) {
       const newTeam = {
-        id: `team${teams.length + 1}`,
         name: teamName,
-        captain: 'User',
+        coachId: user.uid,
         roster: [],
-        imageId: 'team_logo_2'
+        imageId: 'team_logo_2' // default image
       };
-      setTeams([...teams, newTeam]);
+      const teamsCollection = collection(firestore, 'teams');
+      addDocumentNonBlocking(teamsCollection, newTeam);
+      toast({ title: "Team Registered", description: `${teamName} has been created.`});
       event.currentTarget.reset();
     }
   };
@@ -77,7 +106,7 @@ export default function TeamsPage() {
         </TabsList>
         <TabsContent value="my-teams">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-            {teams.map((team) => {
+            {teams?.map((team) => {
               const teamImage = placeholderImages.placeholderImages.find(p => p.id === team.imageId);
               return (
               <Card key={team.id}>

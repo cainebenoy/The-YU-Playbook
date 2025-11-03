@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { coachingLogs, tournamentHistory } from "@/lib/placeholder-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import placeholderImages from "@/lib/placeholder-images.json";
+import { collection, query, where } from "firebase/firestore";
 
 const userAvatar = placeholderImages.placeholderImages.find(p => p.id === "user_avatar_1");
 
@@ -34,17 +34,53 @@ const ProfileSkeleton = () => (
   </div>
 );
 
+type CoachingLog = {
+  id: string;
+  date: string;
+  focus: string;
+  notes: string;
+  duration: string;
+};
+
+type TournamentHistory = {
+  id: string;
+  tournamentName: string;
+  team: string;
+  result: string;
+  record: string;
+  date: string;
+};
+
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const coachingLogsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/coachingLogs`));
+  }, [firestore, user]);
+
+  const { data: coachingLogs, isLoading: coachingLoading } = useCollection<CoachingLog>(coachingLogsQuery);
+
+  // This is a placeholder for tournament history. In a real app, you'd have a more complex query.
+   const tournamentHistoryQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    // This query is a placeholder. You'd likely query a 'userTournaments' collection
+    // or query 'tournaments' where the user's ID is in a participants list.
+    return query(collection(firestore, `users/${user.uid}/tournamentHistory`));
+  }, [firestore, user]);
+
+  const { data: tournamentHistory, isLoading: historyLoading } = useCollection<TournamentHistory>(tournamentHistoryQuery);
+
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isUserLoading && !user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
 
-  if (loading || !user) {
+  if (isUserLoading || !user) {
     return <ProfileSkeleton />;
   }
 
@@ -60,7 +96,7 @@ export default function ProfilePage() {
           </Avatar>
           <div>
             <h1 className="text-3xl font-headline font-bold">
-              {user.email?.split('@')[0] || "User Profile"}
+              {user.displayName || user.email?.split('@')[0] || "User Profile"}
             </h1>
             <p className="text-muted-foreground">{user.email}</p>
           </div>
@@ -77,28 +113,30 @@ export default function ProfilePage() {
                 <CardTitle>Tournament History</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tournament</TableHead>
-                      <TableHead>Team</TableHead>
-                      <TableHead>Result</TableHead>
-                      <TableHead>Record</TableHead>
-                      <TableHead className="text-right">Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tournamentHistory.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.tournamentName}</TableCell>
-                        <TableCell>{item.team}</TableCell>
-                        <TableCell>{item.result}</TableCell>
-                        <TableCell>{item.record}</TableCell>
-                        <TableCell className="text-right">{item.date}</TableCell>
+                {historyLoading ? <Skeleton className="h-40 w-full" /> : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tournament</TableHead>
+                        <TableHead>Team</TableHead>
+                        <TableHead>Result</TableHead>
+                        <TableHead>Record</TableHead>
+                        <TableHead className="text-right">Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {tournamentHistory?.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.tournamentName}</TableCell>
+                          <TableCell>{item.team}</TableCell>
+                          <TableCell>{item.result}</TableCell>
+                          <TableCell>{item.record}</TableCell>
+                          <TableCell className="text-right">{item.date}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -108,26 +146,28 @@ export default function ProfilePage() {
                 <CardTitle>Coaching Logs</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Focus</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead className="text-right">Duration</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {coachingLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">{log.date}</TableCell>
-                        <TableCell>{log.focus}</TableCell>
-                        <TableCell className="max-w-sm truncate">{log.notes}</TableCell>
-                        <TableCell className="text-right">{log.duration}</TableCell>
+                {coachingLoading ? <Skeleton className="h-40 w-full" /> : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Focus</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead className="text-right">Duration</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {coachingLogs?.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-medium">{log.date}</TableCell>
+                          <TableCell>{log.focus}</TableCell>
+                          <TableCell className="max-w-sm truncate">{log.notes}</TableCell>
+                          <TableCell className="text-right">{log.duration}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

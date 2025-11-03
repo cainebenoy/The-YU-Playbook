@@ -11,22 +11,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User, Users, LayoutDashboard } from "lucide-react";
+import { useUser, useAuth } from "@/firebase";
+import { LogOut, User, Users, Trophy } from "lucide-react";
 import Link from "next/link";
 import placeholderImages from "@/lib/placeholder-images.json";
+import { signOut as firebaseSignOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 const userAvatar = placeholderImages.placeholderImages.find(p => p.id === "user_avatar_1");
 
 export function UserNav() {
-  const { user, signOut: handleSignOut, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+
+  const handleSignOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
 
   const getInitials = (email: string | null | undefined) => {
     if (!email) return "U";
     return email[0].toUpperCase();
   };
   
-  if (loading) {
+  if (isUserLoading) {
     return null;
   }
 
@@ -35,7 +49,8 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-             {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={user?.email || "User"} data-ai-hint={userAvatar.imageHint} />}
+             {user?.photoURL && <AvatarImage src={user.photoURL} alt={user?.displayName || "User"} />}
+             {!user?.photoURL && userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={user?.email || "User"} data-ai-hint={userAvatar.imageHint} />}
             <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
           </Avatar>
         </Button>
@@ -44,7 +59,7 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.email?.split('@')[0] || "User"}
+              {user?.displayName || user?.email?.split('@')[0] || "User"}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}

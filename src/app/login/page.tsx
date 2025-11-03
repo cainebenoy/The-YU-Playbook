@@ -15,11 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { YUltimateIcon } from "@/components/icons";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -28,7 +29,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -43,7 +44,7 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
-      await signIn(values.email, values.password);
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: "Success",
         description: "You've been logged in.",

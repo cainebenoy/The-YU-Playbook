@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Trophy, Gamepad2, Users } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useUser } from "@/firebase";
 import { UserNav } from "./user-nav";
 import { YUltimateIcon } from "./icons";
 
@@ -15,7 +15,7 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -63,7 +63,7 @@ export default function Header() {
         </nav>
         
         <div className="flex flex-1 items-center justify-end space-x-4">
-          {loading ? (
+          {isUserLoading ? (
             <div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
           ) : user ? (
             <UserNav />

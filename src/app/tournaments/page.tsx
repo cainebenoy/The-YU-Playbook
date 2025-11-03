@@ -1,12 +1,56 @@
+"use client";
+
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { tournaments } from '@/lib/placeholder-data';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { MapPin, Calendar } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useMemo } from 'react';
+
+type Standing = {
+  rank: number;
+  team: string;
+  wins: number;
+  losses: number;
+  points: number;
+}
+
+type Tournament = {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  standings: Standing[];
+  imageId: string;
+}
+
+const TournamentCardSkeleton = () => (
+  <Card className="overflow-hidden">
+    <Skeleton className="h-56 w-full" />
+    <CardHeader>
+      <Skeleton className="h-8 w-3/4 mb-2" />
+      <Skeleton className="h-4 w-1/2" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-10 w-full" />
+    </CardContent>
+  </Card>
+);
 
 export default function TournamentsPage() {
+  const firestore = useFirestore();
+
+  const tournamentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'tournaments'));
+  }, [firestore]);
+
+  const { data: tournaments, isLoading } = useCollection<Tournament>(tournamentsQuery);
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
@@ -15,7 +59,13 @@ export default function TournamentsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {tournaments.map(tournament => {
+        {isLoading && (
+          <>
+            <TournamentCardSkeleton />
+            <TournamentCardSkeleton />
+          </>
+        )}
+        {tournaments?.map(tournament => {
           const tournamentImage = placeholderImages.placeholderImages.find(p => p.id === tournament.imageId);
           return (
           <Card key={tournament.id} className="overflow-hidden">
@@ -59,7 +109,7 @@ export default function TournamentsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {tournament.standings.map(standing => (
+                        {tournament.standings?.map(standing => (
                           <TableRow key={standing.team}>
                             <TableCell className="font-bold">{standing.rank}</TableCell>
                             <TableCell>{standing.team}</TableCell>

@@ -15,11 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { YUltimateIcon } from "@/components/icons";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -28,7 +29,7 @@ const formSchema = z.object({
 
 export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -43,7 +44,7 @@ export default function SignUpPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
-      await signUp(values.email, values.password);
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
        toast({
         title: "Account Created",
         description: "Welcome to Y-Ultimate!",

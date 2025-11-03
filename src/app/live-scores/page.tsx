@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { liveScores as initialLiveScores } from '@/lib/placeholder-data';
 import placeholderImages from "@/lib/placeholder-images.json";
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
 
 type TeamScore = {
   name: string;
@@ -63,40 +64,14 @@ const LiveScoreCard = ({ game }: { game: LiveScore }) => {
 
 
 const LiveScoreboard = () => {
-    const [scores, setScores] = useState<LiveScore[]>(initialLiveScores);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
+    
+    const matchesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'matches'));
+    }, [firestore]);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 1000); // Simulate initial load
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setScores(prevScores => 
-                prevScores.map(game => {
-                    if (game.status === 'Final') {
-                        return game;
-                    }
-                    // Randomly decide whether to update team A or team B score
-                    const shouldUpdateA = Math.random() > 0.5;
-                    return {
-                        ...game,
-                        teamA: {
-                            ...game.teamA,
-                            score: shouldUpdateA ? game.teamA.score + (Math.random() > 0.8 ? 1 : 0) : game.teamA.score,
-                        },
-                        teamB: {
-                            ...game.teamB,
-                            score: !shouldUpdateA ? game.teamB.score + (Math.random() > 0.8 ? 1 : 0) : game.teamB.score,
-                        }
-                    };
-                })
-            );
-        }, 3000); // Update scores every 3 seconds
-
-        return () => clearInterval(interval);
-    }, []);
+    const { data: scores, isLoading: loading } = useCollection<LiveScore>(matchesQuery);
 
     if (loading) {
         return (
@@ -124,7 +99,7 @@ const LiveScoreboard = () => {
     
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {scores.map(game => (
+            {scores?.map(game => (
                 <LiveScoreCard key={game.id} game={game} />
             ))}
         </div>
