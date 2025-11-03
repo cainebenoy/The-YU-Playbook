@@ -14,6 +14,7 @@
  * - /teams/{teamId}: Team data, publicly readable.
  * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
  * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
+ * - /users/{userId}/tournamentHistory/{tournamentHistoryId}: Tournament history, owned by the user.
  *
  * Key Security Decisions:
  * - User listing is disallowed for privacy.
@@ -133,5 +134,25 @@ service cloud.firestore {
       allow update: if isOwnerOrCoach(userId, resource.data.coachId) && resource != null && resource.data.userId == userId;
       allow delete: if isOwnerOrCoach(userId, resource.data.coachId) && resource != null;
     }
+
+    /**
+     * @description Secure tournament history for a user. Only the user has access.
+     * @path /users/{userId}/tournamentHistory/{tournamentHistoryId}
+     * @allow (create, update, delete) if request.auth.uid == userId
+     * @allow (get, list) if request.auth.uid == userId
+     * @deny (create, update, delete) if request.auth.uid != userId
+     * @deny (get, list) if request.auth.uid != userId
+     * @principle Enforces document ownership for all operations.
+     */
+     match /users/{userId}/tournamentHistory/{tournamentHistoryId} {
+        function isOwner(userId) {
+            return request.auth.uid == userId;
+        }
+
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && resource.data.userId == userId;
+        allow delete: if isOwner(userId);
+     }
   }
 }
