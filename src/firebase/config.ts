@@ -1,8 +1,32 @@
-export const firebaseConfig = {
-  "projectId": "studio-67602257-2ea9c",
-  "appId": "1:579253323409:web:ace9ab11aef3fc87df6130",
-  "apiKey": "AIzaSyDkEqs-zOEGriiLOw2EXdVcbZ8T6Oa0860",
-  "authDomain": "studio-67602257-2ea9c.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "579253323409"
+
+// This function is intended to be used on the client-side.
+// Do not use it in server-side code.
+export const getFirebaseConfig = () => {
+  // We need to use process.env to access environment variables in Next.js
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  };
+
+  // Basic validation to ensure all required fields are present
+  if (
+    !firebaseConfig.apiKey ||
+    !firebaseConfig.authDomain ||
+    !firebaseConfig.projectId ||
+    !firebaseConfig.appId
+  ) {
+    // In a real app, you might want to throw an error or handle this more gracefully.
+    // For now, we'll log a warning.
+    console.warn(
+      'Firebase configuration is missing or incomplete. Please check your environment variables.'
+    );
+    return null;
+  }
+
+  return firebaseConfig;
 };
