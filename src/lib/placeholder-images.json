@@ -1,3 +1,94 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero_banner",
+      "description": "A wide shot of a sports stadium under bright lights.",
+      "imageUrl": "https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzcG9ydHMlMjBzdGFkaXVtfGVufDB8fHx8MTc2MjE0MjQ2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sports stadium"
+    },
+    {
+      "id": "tournament_image_1",
+      "description": "Action shot from an ultimate frisbee game on a sunny day.",
+      "imageUrl": "https://images.unsplash.com/photo-1585953074472-169dd16e1590?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx1bHRpbWF0ZSUyMGZyaXNiZWV8ZW58MHx8fHwxNzYyMTg3NTAxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ultimate frisbee"
+    },
+    {
+      "id": "tournament_image_2",
+      "description": "Players competing for a disc in a dramatic sunset.",
+      "imageUrl": "https://images.unsplash.com/photo-1704213133441-5d1d55446e10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmcmlzYmVlJTIwc3Vuc2V0fGVufDB8fHx8MTc2MjE4NzUwMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "frisbee sunset"
+    },
+    {
+      "id": "team_logo_1",
+      "description": "Abstract logo with a dragon.",
+      "imageUrl": "https://images.unsplash.com/photo-1739055547874-4fe440a2bfea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkcmFnb24lMjBsb2dvfGVufDB8fHx8MTc2MjE4NzUwMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dragon logo"
+    },
+    {
+      "id": "team_logo_2",
+      "description": "Minimalist logo with a lightning bolt.",
+      "imageUrl": "https://images.unsplash.com/photo-1640677139060-56bdfff2e29c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsaWdodG5pbmclMjBsb2dvfGVufDB8fHx8MTc2MjA3NDQ4N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "lightning logo"
+    },
+    {
+      "id": "team_logo_3",
+      "description": "Logo featuring a stylized blue bird.",
+      "imageUrl": "https://images.unsplash.com/photo-1676870421337-2b9c65190264?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiaXJkJTIwbG9nb3xlbnwwfHx8fDE3NjIxMDI2NTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bird logo"
+    },
+    {
+      "id": "team_logo_4",
+      "description": "Geometric logo with green shapes.",
+      "imageUrl": "https://images.unsplash.com/photo-1739470677724-e0f323eab139?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Z2VvbWV0cmljJTIwbG9nb3xlbnwwfHx8fDE3NjIxNTEyMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "geometric logo"
+    },
+    {
+      "id": "team_logo_5",
+      "description": "Logo with a yellow shield.",
+      "imageUrl": "https://images.unsplash.com/photo-1761625424632-c6adc86211d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzaGllbGQlMjBsb2dvfGVufDB8fHx8MTc2MjE2Mjc4Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "shield logo"
+    },
+    {
+      "id": "team_logo_6",
+      "description": "Dark logo with a knight helmet.",
+      "imageUrl": "https://images.unsplash.com/photo-1558188614-aea8a162e41b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxrbmlnaHQlMjBsb2dvfGVufDB8fHx8MTc2MjExMzA2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "knight logo"
+    },
+    {
+      "id": "team_logo_7",
+      "description": "Mystical logo with a wizard hat.",
+      "imageUrl": "https://images.unsplash.com/photo-1723143870307-b18424a1d548?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3aXphcmQlMjBsb2dvfGVufDB8fHx8MTc2MjE4NzUwMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wizard logo"
+    },
+    {
+      "id": "user_avatar_1",
+      "description": "Portrait of a smiling person.",
+      "imageUrl": "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjIwNzc3MTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "user_avatar_2",
+      "description": "Profile picture of a person outdoors.",
+      "imageUrl": "https://images.unsplash.com/photo-1529995049601-ef63465a463f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBwcm9maWxlfGVufDB8fHx8MTc2MjE0NjcwNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person profile"
+    },
+    {
+      "id": "user_avatar_3",
+      "description": "Headshot of a person in sportswear.",
+      "imageUrl": "https://images.unsplash.com/photo-1759365275343-9369a30c97a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxhdGhsZXRlJTIwaGVhZHNob3R8ZW58MHx8fHwxNzYyMDY1MzM2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "athlete headshot"
+    },
+    {
+      "id": "user_avatar_4",
+      "description": "Candid photo of a person laughing.",
+      "imageUrl": "https://images.unsplash.com/photo-1654650231825-f1c06db0c1ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBsYXVnaGluZ3xlbnwwfHx8fDE3NjIwOTAyMTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person laughing"
+    },
+    {
+      "id": "user_avatar_5",
+      "description": "Professional headshot of a person.",
+      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdHxlbnwwfHx8fDE3NjIwODQ4Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional headshot"
+    }
+  ]
 }
