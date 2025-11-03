@@ -15,6 +15,7 @@ import { PlusCircle } from 'lucide-react';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 type Player = {
   id: string;
@@ -114,7 +115,7 @@ const PlayerLogsDialog = ({ coachId, player }: { coachId: string; player: Player
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No logs found for this player.</p>
+              !isLoading && <p className="text-sm text-muted-foreground text-center py-4">No logs found for this player.</p>
             )}
           </div>
         </div>
@@ -197,7 +198,7 @@ export default function CoachingPage() {
         <p className="text-muted-foreground mt-2">Manage logs and development for your players.</p>
       </div>
 
-       {coachedPlayers.length > 0 ? (
+       {teams && teams.length > 0 && coachedPlayers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {coachedPlayers.map(player => {
                 const playerImage = player.photoURL || placeholderImages.placeholderImages.find(p => p.id === player.imageId)?.imageUrl;
@@ -224,13 +225,12 @@ export default function CoachingPage() {
        ) : (
         <Card className="mt-6 text-center py-12">
             <CardHeader>
-                <CardTitle>No Players Found</CardTitle>
-                <CardDescription>You are not currently coaching any players on your teams.</CardDescription>
+                <CardTitle>No Teams or Players Found</CardTitle>
+                <CardDescription>You are not currently coaching any players. To get started, create a team and add players to your roster.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p>Go to the "My Teams" page to create a team and add players to your roster.</p>
                 <Button asChild className="mt-4">
-                    <Link href="/teams">Manage Teams</Link>
+                    <Link href="/teams">Manage My Teams</Link>
                 </Button>
             </CardContent>
         </Card>

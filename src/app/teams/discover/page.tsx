@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { Users, Check, Clock, Eye } from 'lucide-react';
+import { Users, Check, Clock, Eye, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -26,8 +26,7 @@ type JoinRequest = {
   status: 'pending' | 'approved' | 'denied';
 }
 
-const RequestToJoinButton = ({ teamId }: { teamId: string }) => {
-  const { user } = useUser();
+const RequestToJoinButton = ({ teamId, user }: { teamId: string, user: any }) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,6 +55,17 @@ const RequestToJoinButton = ({ teamId }: { teamId: string }) => {
     toast({ title: 'Request Sent', description: 'Your request to join the team has been sent to the coach.' });
     setIsSubmitting(false);
   };
+  
+  if (!user) {
+      return (
+          <Button asChild className="w-full" variant="secondary">
+              <Link href="/login?redirect=/teams/discover">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Log in to join
+              </Link>
+          </Button>
+      );
+  }
 
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />;
@@ -73,9 +83,8 @@ const RequestToJoinButton = ({ teamId }: { teamId: string }) => {
 };
 
 
-const TeamCard = ({ team }: { team: Team }) => {
+const TeamCard = ({ team, user }: { team: Team, user: any }) => {
   const teamImage = placeholderImages.placeholderImages.find(p => p.id === team.imageId);
-  const { user } = useUser();
 
   const isCoach = user?.uid === team.coachId;
   const isPlayer = team.roster?.some(p => p.id === user?.uid);
@@ -108,7 +117,7 @@ const TeamCard = ({ team }: { team: Team }) => {
         ) : isPlayer ? (
             <Button disabled className="flex-1"><Check className="mr-2 h-4 w-4" />Joined</Button>
         ) : (
-            <RequestToJoinButton teamId={team.id} />
+            <RequestToJoinButton teamId={team.id} user={user} />
         )}
       </CardFooter>
     </Card>
@@ -126,7 +135,8 @@ const DiscoverSkeleton = () => (
                         <Skeleton className="h-4 w-20" />
                     </div>
                 </CardHeader>
-                <CardFooter>
+                <CardFooter className="flex gap-2">
+                    <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                 </CardFooter>
             </Card>
@@ -138,32 +148,15 @@ const DiscoverSkeleton = () => (
 export default function DiscoverTeamsPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login?redirect=/teams/discover');
-    }
-  }, [isUserLoading, user, router]);
 
   const teamsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'teams'));
   }, [firestore]);
 
-  const { data: teams, isLoading } = useCollection<Team>(teamsQuery);
-
-  if (isUserLoading || !user) {
-    return (
-         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-             <div className="text-center mb-12">
-                <h1 className="text-4xl md:text-5xl font-headline font-bold">Discover Teams</h1>
-                <p className="mt-4 text-lg text-muted-foreground">Find a team and start your journey.</p>
-            </div>
-            <DiscoverSkeleton />
-        </div>
-    )
-  }
+  const { data: teams, isLoading: isTeamsLoading } = useCollection<Team>(teamsQuery);
+  
+  const isLoading = isUserLoading || isTeamsLoading;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -173,9 +166,19 @@ export default function DiscoverTeamsPage() {
       </div>
 
       {isLoading ? <DiscoverSkeleton /> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teams?.map(team => <TeamCard key={team.id} team={team} />)}
-        </div>
+         teams && teams.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teams?.map(team => <TeamCard key={team.id} team={team} user={user} />)}
+            </div>
+         ) : (
+            <div className="text-center py-16 border-2 border-dashed rounded-lg">
+                <h2 className="text-xl font-semibold">No Teams Found</h2>
+                <p className="text-muted-foreground mt-2">There are currently no teams to discover. Why not create one?</p>
+                <Button asChild className="mt-4">
+                    <Link href="/teams">Manage My Teams</Link>
+                </Button>
+            </div>
+         )
       )}
     </div>
   );
