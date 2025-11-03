@@ -1,3 +1,4 @@
+
 /**
  * @file Firebase Security Rules for YU Playbook.
  *
@@ -49,17 +50,19 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secure tournament information. Open read access, no ownership for writes.
+     * @description Secure tournament information. Open read access, authenticated users can register teams.
      * @path /tournaments/{tournamentId}
      * @allow (get, list) if true
-     * @deny (create, update, delete) if false
-     * @principle Open read access with restricted writes.
+     * @allow (update) if request.auth != null // Allows authenticated users to add their teamId
+     * @deny (create, delete) if false
+     * @principle Open read access with restricted writes for registration.
      */
     match /tournaments/{tournamentId} {
       allow get, list: if true;
+      allow update: if request.auth != null; // Allow any authenticated user to register a team.
 
-      // CRITICAL: Tournaments does not have an ownerId or authorId field
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      // Creating/deleting tournaments should be an admin-only action.
+      allow create, delete: if false; // TODO: Add admin validation.
     }
 
     /**
@@ -102,7 +105,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secure match details. Open read access, no ownership for writes.
+     * @description Secure match details. Open read access for authenticated users.
      * @path /matches/{matchId}
      * @allow (get, list) if request.auth != null
      * @deny (create, update, delete) if false
@@ -110,8 +113,6 @@ service cloud.firestore {
      */
     match /matches/{matchId} {
       allow get, list: if request.auth != null;
-
-      // CRITICAL: Matches does not have an ownerId or authorId field
       allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 

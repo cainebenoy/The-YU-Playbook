@@ -1,15 +1,21 @@
+
 "use client";
 
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import placeholderImages from '@/lib/placeholder-images.json';
-import { MapPin, Calendar } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { MapPin, Calendar, Users } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc, arrayUnion } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from '@/hooks/use-toast';
+
 
 type Standing = {
   rank: number;
@@ -21,11 +27,18 @@ type Standing = {
 
 type Tournament = {
   id: string;
-  name: string;
+  name:string;
   date: string;
   location: string;
   standings: Standing[];
   imageId: string;
+  teamIds?: string[];
+}
+
+type Team = {
+  id: string;
+  name: string;
+  coachId: string;
 }
 
 const TournamentCardSkeleton = () => (
@@ -38,11 +51,88 @@ const TournamentCardSkeleton = () => (
     <CardContent>
       <Skeleton className="h-10 w-full" />
     </CardContent>
+    <CardFooter>
+        <Skeleton className="h-10 w-24" />
+    </CardFooter>
   </Card>
 );
 
+const RegisterTeamDialog = ({ tournament, teams }: { tournament: Tournament; teams: Team[] }) => {
+    const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+    const [isOpen, setIsOpen] = useState(false);
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const handleRegistration = () => {
+        if (!firestore || !selectedTeamId) {
+            toast({
+                variant: 'destructive',
+                title: 'Selection Required',
+                description: 'Please select a team to register.',
+            });
+            return;
+        }
+
+        if (tournament.teamIds?.includes(selectedTeamId)) {
+             toast({
+                variant: 'default',
+                title: 'Already Registered',
+                description: 'This team is already registered for the tournament.',
+            });
+            setIsOpen(false);
+            return;
+        }
+
+        const tournamentDocRef = doc(firestore, 'tournaments', tournament.id);
+        updateDocumentNonBlocking(tournamentDocRef, {
+            teamIds: arrayUnion(selectedTeamId)
+        });
+
+        toast({
+            title: 'Registration Successful',
+            description: `Your team has been registered for ${tournament.name}.`,
+        });
+        setIsOpen(false);
+    }
+
+
+    return (
+         <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button>Register Team</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Register for {tournament.name}</DialogTitle>
+                    <DialogDescription>Select one of your teams to register for this tournament.</DialogDescription>
+                </DialogHeader>
+                
+                <Select onValueChange={setSelectedTeamId} value={selectedTeamId}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a team..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {teams.map(team => (
+                            <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleRegistration} disabled={!selectedTeamId}>Confirm Registration</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+
+}
+
 export default function TournamentsPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const tournamentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -50,6 +140,15 @@ export default function TournamentsPage() {
   }, [firestore]);
 
   const { data: tournaments, isLoading } = useCollection<Tournament>(tournamentsQuery);
+
+  const coachTeamsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'teams'), where('coachId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: coachTeams, isLoading: teamsLoading } = useCollection<Team>(coachTeamsQuery);
+
+  const showRegistration = !isUserLoading && user && coachTeams && coachTeams.length > 0;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -68,7 +167,7 @@ export default function TournamentsPage() {
         {tournaments?.map(tournament => {
           const tournamentImage = placeholderImages.placeholderImages.find(p => p.id === tournament.imageId);
           return (
-          <Card key={tournament.id} className="overflow-hidden">
+          <Card key={tournament.id} className="flex flex-col overflow-hidden">
             {tournamentImage && (
               <div className="relative h-56 w-full">
                 <Image 
@@ -91,9 +190,13 @@ export default function TournamentsPage() {
                     <MapPin className="h-4 w-4"/>
                     <span>{tournament.location}</span>
                 </div>
+                <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4"/>
+                    <span>{tournament.teamIds?.length || 0} teams registered</span>
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-grow">
               <Accordion type="single" collapsible>
                 <AccordionItem value="standings">
                   <AccordionTrigger>View Standings</AccordionTrigger>
@@ -124,6 +227,11 @@ export default function TournamentsPage() {
                 </AccordionItem>
               </Accordion>
             </CardContent>
+             <CardFooter>
+                {showRegistration && coachTeams && (
+                    <RegisterTeamDialog tournament={tournament} teams={coachTeams} />
+                )}
+             </CardFooter>
           </Card>
         )})}
       </div>
