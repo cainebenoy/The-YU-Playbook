@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
@@ -46,6 +46,7 @@ const RequestToJoinButton = ({ teamId }: { teamId: string }) => {
     setIsSubmitting(true);
     const requestDocRef = doc(firestore, `teams/${teamId}/joinRequests`, user.uid);
     const newRequest = {
+      userId: user.uid,
       displayName: user.displayName || user.email,
       photoURL: user.photoURL || '',
       status: 'pending',
