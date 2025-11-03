@@ -83,17 +83,22 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secure team data. Open read access, no ownership for writes.
+     * @description Secure team data. Open read access, coach ownership for writes.
      * @path /teams/{teamId}
      * @allow (get, list) if true
-     * @deny (create, update, delete) if false
-     * @principle Open read access with restricted writes.
+     * @allow (create) if request.auth.uid == request.resource.data.coachId
+     * @allow (update, delete) if request.auth.uid == resource.data.coachId
+     * @principle Open read access with coach-based ownership for writes.
      */
     match /teams/{teamId} {
-      allow get, list: if true;
+      function isCoach(coachId) {
+        return request.auth.uid == coachId;
+      }
 
-      // CRITICAL: Teams does not have an ownerId or authorId field
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow get, list: if true;
+      allow create: if isCoach(request.resource.data.coachId);
+      allow update: if isCoach(resource.data.coachId);
+      allow delete: if isCoach(resource.data.coachId);
     }
 
     /**
