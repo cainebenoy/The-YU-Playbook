@@ -1,0 +1,353 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the Y-Ultimate Unified Platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile photo.",
+          "format": "uri"
+        },
+        "creationTime": {
+          "type": "string",
+          "description": "Timestamp of when the user account was created.",
+          "format": "date-time"
+        },
+        "lastSignInTime": {
+          "type": "string",
+          "description": "Timestamp of the user's last sign-in.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName"
+      ]
+    },
+    "Tournament": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Tournament",
+      "type": "object",
+      "description": "Represents a tournament within the platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the tournament entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the tournament."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the tournament.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the tournament.",
+          "format": "date-time"
+        },
+        "teamIds": {
+          "type": "array",
+          "description": "References to Teams participating in the tournament. (Relationship: Tournament 1:N Team)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "startDate",
+        "endDate"
+      ]
+    },
+    "CoachingProgram": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CoachingProgram",
+      "type": "object",
+      "description": "Represents a coaching program.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the coaching program entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the coaching program."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the coaching program."
+        },
+        "instructorId": {
+          "type": "string",
+          "description": "Reference to User who is the instructor. (Relationship: User 1:N CoachingProgram)"
+        },
+        "studentIds": {
+          "type": "array",
+          "description": "References to Users enrolled in the program. (Relationship: User N:N CoachingProgram)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "instructorId"
+      ]
+    },
+    "Team": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Team",
+      "type": "object",
+      "description": "Represents a team participating in tournaments.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the team entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the team."
+        },
+        "coachId": {
+          "type": "string",
+          "description": "Reference to User who is the coach of the team. (Relationship: User 1:N Team)"
+        },
+        "playerIds": {
+          "type": "array",
+          "description": "References to Users who are players in the team. (Relationship: User N:N Team)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "coachId"
+      ]
+    },
+    "Match": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Match",
+      "type": "object",
+      "description": "Represents a match within a tournament.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the match entity."
+        },
+        "tournamentId": {
+          "type": "string",
+          "description": "Reference to Tournament the match belongs to. (Relationship: Tournament 1:N Match)"
+        },
+        "team1Id": {
+          "type": "string",
+          "description": "Reference to Team 1 in the match. (Relationship: Team 1:N Match)"
+        },
+        "team2Id": {
+          "type": "string",
+          "description": "Reference to Team 2 in the match. (Relationship: Team 1:N Match)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Scheduled start time of the match.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "Actual end time of the match.",
+          "format": "date-time"
+        },
+        "team1Score": {
+          "type": "number",
+          "description": "Score of Team 1 in the match."
+        },
+        "team2Score": {
+          "type": "number",
+          "description": "Score of Team 2 in the match."
+        }
+      },
+      "required": [
+        "id",
+        "tournamentId",
+        "team1Id",
+        "team2Id",
+        "startTime"
+      ]
+    },
+    "CoachingLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CoachingLog",
+      "type": "object",
+      "description": "Represents a coaching log entry for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the coaching log entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User the log belongs to. (Relationship: User 1:N CoachingLog)"
+        },
+        "coachId": {
+          "type": "string",
+          "description": "Reference to User who created the log (coach). (Relationship: User 1:N CoachingLog)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the coaching log entry.",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes from the coaching session."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "coachId",
+        "date",
+        "notes"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership: only the user can read/write their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tournaments/{tournamentId}",
+        "definition": {
+          "entityName": "Tournament",
+          "schema": {
+            "$ref": "#/backend/entities/Tournament"
+          },
+          "description": "Stores tournament information. No specific ownership; open access.",
+          "params": [
+            {
+              "name": "tournamentId",
+              "description": "The unique identifier of the tournament."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/coachingPrograms/{coachingProgramId}",
+        "definition": {
+          "entityName": "CoachingProgram",
+          "schema": {
+            "$ref": "#/backend/entities/CoachingProgram"
+          },
+          "description": "Stores coaching programs. Includes instructorId for authorization independence and studentIds array.",
+          "params": [
+            {
+              "name": "coachingProgramId",
+              "description": "The unique identifier of the coaching program."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}",
+        "definition": {
+          "entityName": "Team",
+          "schema": {
+            "$ref": "#/backend/entities/Team"
+          },
+          "description": "Stores team data. No specific ownership; open access.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "The unique identifier of the team."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tournaments/{tournamentId}/matches/{matchId}",
+        "definition": {
+          "entityName": "Match",
+          "schema": {
+            "$ref": "#/backend/entities/Match"
+          },
+          "description": "Stores match details, nested under tournaments. No specific ownership; open access.",
+          "params": [
+            {
+              "name": "tournamentId",
+              "description": "The unique identifier of the tournament."
+            },
+            {
+              "name": "matchId",
+              "description": "The unique identifier of the match."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/coachingLogs/{coachingLogId}",
+        "definition": {
+          "entityName": "CoachingLog",
+          "schema": {
+            "$ref": "#/backend/entities/CoachingLog"
+          },
+          "description": "Stores coaching logs for a user. Path-based ownership: only the user and coach can access the log. Includes coachId for authorization purposes.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "coachingLogId",
+              "description": "The unique identifier of the coaching log."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support required QAPs (Queries are not Filters), and maintain data integrity.\n\n*   **Users Collection:** Stores user profiles. Access is path-based, ensuring only the user can read/write their profile.\n*   **Tournaments Collection:** Stores tournament information.  No specific ownership, open access.\n*   **Teams Collection:** Stores team data. No specific ownership, open access.\n*   **Matches Collection:** Stores match details, nested under tournaments to leverage hierarchical data. No specific ownership, open access.\n*   **CoachingPrograms Collection:** Stores coaching programs. Each program has an instructor and students; instructorId is stored within the document. StudentIds are stored in the `studentIds` array. Access control: Only the instructor (identified by instructorId) can modify a program.\n*   **CoachingLogs Collection:** Stores coaching logs. Nested under `/users/{userId}` to leverage hierarchical ownership. Only the user and the coach have access.\n\n**Authorization Independence:**\n\n*   `CoachingPrograms`: The `instructorId` field within each coaching program document ensures that security rules can validate the instructor's identity without needing to perform additional `get()` operations to retrieve the instructor's information from a parent document. The studentIds array gives a list of students without requiring `get()` operations to confirm they are a student.\n*   `CoachingLogs`: Because the collection is nested under the `users/{userId}` collection, the user ID is immediately available for simple path-based ownership. `coachId` is stored within the document to determine the coach.\n\n**QAPs (Queries are not Filters):**\n\n*   The segregation of data based on ownership (e.g., `/users/{userId}/coachingLogs`) allows for efficient and secure list operations. Rules can easily check `request.auth.uid == userId` to ensure that only the logged-in user can access their data. No filtering is needed within the rules.\n*   For collections without ownership (e.g., `/tournaments`, `/teams`, `/matches`), rules can be written to allow public read access, while still restricting write access based on administrative roles (if needed) stored in a separate `/roles_admin/{uid}` collection."
+  }
+}

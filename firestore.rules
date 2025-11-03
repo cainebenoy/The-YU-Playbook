@@ -1,0 +1,137 @@
+/**
+ * @file Firebase Security Rules for the Y-Ultimate Unified Platform.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles and coaching logs,
+ * an instructor-ownership model for coaching programs, and open access for tournaments,
+ * teams, and matches.  All write operations are strictly controlled based on user
+ * authentication and explicit authorization checks.
+ *
+ * Data Structure:
+ * - /users/{userId}: User profiles, owned by the user.
+ * - /tournaments/{tournamentId}: Tournament information, publicly readable.
+ * - /coachingPrograms/{coachingProgramId}: Coaching programs, owned by the instructor.
+ * - /teams/{teamId}: Team data, publicly readable.
+ * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
+ * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed for privacy.
+ * - Open read access is granted to tournaments, teams, and matches to facilitate data sharing.
+ * - The instructorId and coachId are stored within the CoachingProgram and CoachingLog documents, respectively,
+ *   to enable authorization checks without additional reads.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secure user profiles. Only the user can read/write their own profile.
+     * @path /users/{userId}
+     * @allow (create, update, delete) if request.auth.uid == userId
+     * @allow (get, list) if request.auth.uid == userId
+     * @deny (create, update, delete) if request.auth.uid != userId
+     * @deny (get, list) if request.auth.uid != userId
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallowing listing of all users for privacy
+
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource.data.id == userId;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secure tournament information. Open read access, no ownership for writes.
+     * @path /tournaments/{tournamentId}
+     * @allow (get, list) if true
+     * @deny (create, update, delete) if false
+     * @principle Open read access with restricted writes.
+     */
+    match /tournaments/{tournamentId} {
+      allow get, list: if true;
+
+      // CRITICAL: Tournaments does not have an ownerId or authorId field
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Secure coaching programs. Only the instructor can modify the program.
+     * @path /coachingPrograms/{coachingProgramId}
+     * @allow (create, update, delete) if request.auth.uid == resource.data.instructorId
+     * @allow (get, list) if true
+     * @deny (create, update, delete) if request.auth.uid != resource.data.instructorId
+     * @principle Enforces instructor-based ownership for write operations.
+     */
+    match /coachingPrograms/{coachingProgramId} {
+      function isInstructor(instructorId) {
+        return request.auth.uid == instructorId;
+      }
+
+      allow get, list: if true;
+
+      allow create: if isInstructor(request.resource.data.instructorId);
+      allow update: if isInstructor(resource.data.instructorId) && resource != null;
+      allow delete: if isInstructor(resource.data.instructorId) && resource != null;
+    }
+
+    /**
+     * @description Secure team data. Open read access, no ownership for writes.
+     * @path /teams/{teamId}
+     * @allow (get, list) if true
+     * @deny (create, update, delete) if false
+     * @principle Open read access with restricted writes.
+     */
+    match /teams/{teamId} {
+      allow get, list: if true;
+
+      // CRITICAL: Teams does not have an ownerId or authorId field
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Secure match details nested under tournaments. Open read access, no ownership for writes.
+     * @path /tournaments/{tournamentId}/matches/{matchId}
+     * @allow (get, list) if true
+     * @deny (create, update, delete) if false
+     * @principle Open read access with restricted writes.
+     */
+    match /tournaments/{tournamentId}/matches/{matchId} {
+      allow get, list: if true;
+
+      // CRITICAL: Matches does not have an ownerId or authorId field
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Secure coaching logs for a user. Only the user and the coach have access.
+     * @path /users/{userId}/coachingLogs/{coachingLogId}
+     * @allow (create, update, delete) if request.auth.uid == userId OR request.auth.uid == resource.data.coachId
+     * @allow (get, list) if request.auth.uid == userId OR request.auth.uid == resource.data.coachId
+     * @deny (create, update, delete) if request.auth.uid != userId AND request.auth.uid != resource.data.coachId
+     * @deny (get, list) if request.auth.uid != userId AND request.auth.uid != resource.data.coachId
+     * @principle Enforces document ownership (user) and shared access (coach) for all operations.
+     */
+    match /users/{userId}/coachingLogs/{coachingLogId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isOwnerOrCoach(userId, coachId) {
+        return request.auth.uid == userId || request.auth.uid == coachId;
+      }
+
+      allow get: if isOwnerOrCoach(userId, resource.data.coachId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwnerOrCoach(userId, request.resource.data.coachId) && request.resource.data.userId == userId;
+      allow update: if isOwnerOrCoach(userId, resource.data.coachId) && resource != null && resource.data.userId == userId;
+      allow delete: if isOwnerOrCoach(userId, resource.data.coachId) && resource != null;
+    }
+  }
+}
