@@ -48,7 +48,7 @@ service cloud.firestore {
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get, list: if request.auth != null; // Allow any authenticated user to read profiles for role checks
+      allow get: if request.auth != null; // Allow any authenticated user to read a single profile for role checks
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
@@ -200,7 +200,7 @@ service cloud.firestore {
      */
     match /tournaments/{tournamentId}/matches/{matchId} {
       allow get, list: if true;
-      allow create, update, delete: if false; 
+      allow write: if false; 
     }
   }
 }
