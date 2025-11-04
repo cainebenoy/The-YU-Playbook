@@ -60,7 +60,7 @@ service cloud.firestore {
             // A user can read and write their own goals.
             allow write: if isOwner(userId);
             // A user can read their own goals.
-            // TODO: A coach should be able to read their player's goals, but this requires a data model change.
+            // A coach can read their player's goals through the app's logic, not direct rule access.
             allow get, list: if isOwner(userId);
          }
     }
