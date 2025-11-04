@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Calendar, Gamepad2, MapPin, NotebookPen, Running, Trophy } from 'lucide-react';
+import { Calendar, Gamepad2, MapPin, NotebookPen, PersonStanding, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import placeholderImages from '@/lib/placeholder-images.json';
 
@@ -33,7 +33,7 @@ type Event = {
 }
 
 const eventTypeIcons = {
-    Practice: <Running className="h-5 w-5 text-blue-500" />,
+    Practice: <PersonStanding className="h-5 w-5 text-blue-500" />,
     Game: <Trophy className="h-5 w-5 text-yellow-500" />,
     Scrimmage: <Gamepad2 className="h-5 w-5 text-green-500" />,
     Other: <NotebookPen className="h-5 w-5 text-gray-500" />,

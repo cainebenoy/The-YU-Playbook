@@ -81,6 +81,16 @@ This project requires a Firebase project to run.
 
 The application will be available at `http://localhost:9002`.
 
+## Testing Credentials
+
+To make it easier for judges to test the application, the following test accounts have been created. The password for all accounts is `123456789`.
+
+*   **Admin User:** `admin@test.com`
+*   **Coach User:** `coach@test.com`
+*   **Player User:** `player@test.com`
+
+You can use these accounts to log in and explore the application from the perspective of each role.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

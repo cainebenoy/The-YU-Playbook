@@ -1,33 +1,3 @@
-
-/**
- * @file Firebase Security Rules for YU Playbook.
- *
- * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles and coaching logs,
- * an instructor-ownership model for coaching programs, and open access for tournaments,
- * teams, and matches.  All write operations are strictly controlled based on user
- * authentication and explicit authorization checks.
- *
- * Data Structure:
- * - /users/{userId}: User profiles, owned by the user. Contains role field.
- * - /tournaments/{tournamentId}: Tournament information, publicly readable.
- * - /coachingPrograms/{coachingProgramId}: Coaching programs, owned by the instructor.
- * - /teams/{teamId}: Team data, publicly readable.
- * - /teams/{teamId}/joinRequests/{userId}: Join requests, created by users, managed by coaches.
- * - /teams/{teamId}/announcements/{announcementId}: Announcements, created by coach, readable by all.
- * - /teams/{teamId}/events/{eventId}: Events, created by coach, readable by all.
- * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
- * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
- * - /users/{userId}/tournamentHistory/{tournamentHistoryId}: Tournament history, owned by the user.
- * - /users/{userId}/goals/{goalId}: Personal development goals, owned by the user.
- *
- * Key Security Decisions:
- * - User listing is disallowed for privacy.
- * - Open read access is granted to tournaments, teams, and matches to facilitate data sharing.
- * - The instructorId and coachId are stored within the CoachingProgram and CoachingLog documents, respectively,
- *   to enable authorization checks without additional reads.
- * - Admin-only write access for critical collections like tournaments and matches.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -38,34 +8,17 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Get the user's document and check their role.
-      // This requires one read operation per protected request.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /**
-     * @description Secure user profiles. Only the user can write their own profile.
-     * Any authenticated user can get a single user document (for role checks etc.).
-     * Listing users is disallowed.
-     * @path /users/{userId}
-     */
     match /users/{userId} {
       allow get: if request.auth != null;
       allow create, update, delete: if isOwner(userId);
 
-      /**
-       * @description Secure personal goals for a user.
-       * A user can read and write their own goals.
-       * This rule applies to both listing the collection and getting/writing individual documents.
-       */
        match /goals/{goalId} {
          allow read, write: if isOwner(userId);
        }
        
-      /**
-       * @description Secure coaching logs for a user. Only the user and the coach have access.
-       * @path /users/{userId}/coachingLogs/{coachingLogId}
-       */
       match /coachingLogs/{coachingLogId} {
         function isCoach(coachId) {
           return request.auth.uid == coachId;
@@ -75,27 +28,15 @@ service cloud.firestore {
         }
 
         allow read: if isOwnerOrCoach();
-        
-        // Only a coach can create a log.
         allow create: if isCoach(request.resource.data.coachId) && request.resource.data.userId == userId;
-        
-        // Only the coach who created the log can update or delete it.
         allow update, delete: if isCoach(resource.data.coachId);
       }
 
-      /**
-       * @description Secure tournament history for a user. Only the user has access.
-       * @path /users/{userId}/tournamentHistory/{tournamentHistoryId}
-       */
        match /tournamentHistory/{tournamentHistoryId} {
           allow read, write: if isOwner(userId);
        }
     }
 
-    /**
-     * @description Secure tournament information. Publicly readable. Admin-only writes.
-     * @path /tournaments/{tournamentId}
-     */
     match /tournaments/{tournamentId} {
         allow get, list: if true;
         allow create, delete: if isAdmin();
@@ -108,10 +49,6 @@ service cloud.firestore {
         );
     }
 
-    /**
-     * @description Secure coaching programs. Only the instructor can modify the program.
-     * @path /coachingPrograms/{coachingProgramId}
-     */
     match /coachingPrograms/{coachingProgramId} {
       function isInstructor(instructorId) {
         return request.auth.uid == instructorId;
@@ -124,10 +61,6 @@ service cloud.firestore {
       allow delete: if isInstructor(resource.data.instructorId);
     }
 
-    /**
-     * @description Secure team data. Open read access, coach ownership for writes.
-     * @path /teams/{teamId}
-     */
     match /teams/{teamId} {
       function isTeamCoach() {
           return get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
@@ -139,65 +72,35 @@ service cloud.firestore {
 
       allow get, list: if true;
       allow create: if isCoach(request.resource.data.coachId);
-      allow update: if isCoach(resource.data.coachId) || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['roster']);
+      allow update: if isCoach(resource.data.coachId);
       allow delete: if isCoach(resource.data.coachId);
 
-       /**
-       * @description Secure join requests for a team.
-       * @path /teams/{teamId}/joinRequests/{userId}
-       */
        match /joinRequests/{userId} {
         function isRequestingUser() {
           return request.auth.uid == userId;
         }
 
-        // Any authenticated user can create their own request
         allow create: if request.auth != null && isRequestingUser();
-        // A user can read their own request to see its status
         allow get: if request.auth != null && (isRequestingUser() || isTeamCoach());
-        // Only the coach can list, update or delete requests
         allow list, update, delete: if request.auth != null && isTeamCoach();
       }
 
-       /**
-       * @description Secure announcements for a team.
-       * @path /teams/{teamId}/announcements/{announcementId}
-       */
        match /announcements/{announcementId} {
-         // Anyone authenticated can read announcements (e.g., players, fans)
          allow get, list: if request.auth != null;
-         // Only the coach of the team can create, update, or delete announcements
          allow write: if isTeamCoach();
        }
 
-       /**
-        * @description Secure events for a team.
-        * @path /teams/{teamId}/events/{eventId}
-        */
        match /events/{eventId} {
-         // Anyone authenticated can read team events
          allow get, list: if request.auth != null;
-         // Only the coach of the team can create, update, or delete events
          allow write: if isTeamCoach();
        }
     }
 
-    /**
-     * @description Secure match details. Public read access. Admin-only writes.
-     * @path /matches/{matchId}
-     */
     match /matches/{matchId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
-
-    /**
-     * @description Secure match details nested under tournaments.
-     * This path is deprecated in favor of the root /matches collection.
-     * Denying all writes here for safety.
-     * @path /tournaments/{tournamentId}/matches/{matchId}
-     */
     match /tournaments/{tournamentId}/matches/{matchId} {
       allow get, list: if true;
       allow write: if false; 
