@@ -31,7 +31,7 @@ const userAvatar = placeholderImages.placeholderImages.find(p => p.id === 'user_
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50, { message: 'Name cannot be longer than 50 characters.' }),
-  photoURL: z.string().url({ message: 'Please enter a valid URL.' }).or(z.literal('')),
+  photoURL: z.string().url({ message: 'Please enter a valid URL.' }).or(z.literal(''))
 });
 
 const EditProfileDialog = ({ user, onProfileUpdate }: { user: any, onProfileUpdate: () => void }) => {
@@ -44,8 +44,8 @@ const EditProfileDialog = ({ user, onProfileUpdate }: { user: any, onProfileUpda
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       displayName: user.displayName || '',
-      photoURL: user.photoURL || '',
-    },
+      photoURL: user.photoURL || ''
+    }
   });
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
@@ -58,7 +58,7 @@ const EditProfileDialog = ({ user, onProfileUpdate }: { user: any, onProfileUpda
       // Update Firebase Auth profile
       await updateProfile(auth.currentUser, {
         displayName: values.displayName,
-        photoURL: values.photoURL,
+        photoURL: values.photoURL
       });
       
       // Update Firestore document
@@ -66,13 +66,13 @@ const EditProfileDialog = ({ user, onProfileUpdate }: { user: any, onProfileUpda
         const userDocRef = doc(firestore, 'users', user.uid);
         updateDocumentNonBlocking(userDocRef, {
             displayName: values.displayName,
-            photoURL: values.photoURL,
+            photoURL: values.photoURL
         });
       }
 
       toast({
         title: 'Profile Updated',
-        description: 'Your profile has been successfully updated.',
+        description: 'Your profile has been successfully updated.'
       });
       onProfileUpdate(); // Trigger a re-fetch or state update in the parent
       setIsOpen(false);
@@ -80,7 +80,7 @@ const EditProfileDialog = ({ user, onProfileUpdate }: { user: any, onProfileUpda
       toast({
         variant: 'destructive',
         title: 'Update Failed',
-        description: error.message || 'An error occurred while updating your profile.',
+        description: error.message || 'An error occurred while updating your profile.'
       });
     }
   };
@@ -227,7 +227,7 @@ export default function ProfilePage() {
         userId: user.uid,
         description: newGoal,
         status: 'In Progress',
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
     };
     addDocumentNonBlocking(goalsCollection, goalData);
     toast({ title: 'Goal Added', description: 'Your new goal has been saved.' });
@@ -238,7 +238,7 @@ export default function ProfilePage() {
     if (!firestore || !user) return;
     const goalDocRef = doc(firestore, `users/${user.uid}/goals`, goal.id);
     updateDocumentNonBlocking(goalDocRef, {
-        status: completed ? 'Completed' : 'In Progress',
+        status: completed ? 'Completed' : 'In Progress'
     });
   };
 

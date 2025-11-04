@@ -74,7 +74,7 @@ service cloud.firestore {
           return isOwner(userId) || isCoach(resource.data.coachId);
         }
 
-        allow get, list: if isOwnerOrCoach();
+        allow read: if isOwnerOrCoach();
         
         // Only a coach can create a log.
         allow create: if isCoach(request.resource.data.coachId) && request.resource.data.userId == userId;
