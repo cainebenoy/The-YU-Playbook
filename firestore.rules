@@ -19,6 +19,7 @@
  * - /tournaments/{tournamentId}/matches/{matchId}: Match details, publicly readable.
  * - /users/{userId}/coachingLogs/{coachingLogId}: Coaching logs, owned by the user and accessible by the coach.
  * - /users/{userId}/tournamentHistory/{tournamentHistoryId}: Tournament history, owned by the user.
+ * - /users/{userId}/goals/{goalId}: Personal development goals, owned by the user.
  *
  * Key Security Decisions:
  * - User listing is disallowed for privacy.
@@ -52,17 +53,14 @@ service cloud.firestore {
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
 
-        /**
-         * @description Secure personal goals for a user.
-         * @path /users/{userId}/goals/{goalId}
-         */
-         match /goals/{goalId} {
-            // A user can read and write their own goals.
-            allow write: if isOwner(userId);
-            // A user can read their own goals.
-            // A coach can read their player's goals through the app's logic, not direct rule access.
-            allow get, list: if isOwner(userId);
-         }
+      /**
+       * @description Secure personal goals for a user.
+       * A user can read and write their own goals. A coach can read them.
+       * `list` is required for useCollection.
+       */
+       match /goals/{goalId} {
+         allow read, write: if isOwner(userId);
+       }
     }
 
     /**
@@ -209,6 +207,3 @@ service cloud.firestore {
      }
   }
 }
-    
-
-    
