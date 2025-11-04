@@ -55,11 +55,40 @@ service cloud.firestore {
 
       /**
        * @description Secure personal goals for a user.
-       * A user can read and write their own goals. A coach can read them.
-       * `list` is required for useCollection.
+       * A user can read and write their own goals.
+       * This rule applies to both listing the collection and getting individual documents.
        */
        match /goals/{goalId} {
          allow read, write: if isOwner(userId);
+       }
+       
+      /**
+       * @description Secure coaching logs for a user. Only the user and the coach have access.
+       * @path /users/{userId}/coachingLogs/{coachingLogId}
+       */
+      match /coachingLogs/{coachingLogId} {
+        function isCoach(coachId) {
+          return request.auth.uid == coachId;
+        }
+        function isOwnerOrCoach() {
+          return isOwner(userId) || isCoach(resource.data.coachId);
+        }
+
+        allow get, list: if isOwnerOrCoach();
+        
+        // Only a coach can create a log.
+        allow create: if isCoach(request.resource.data.coachId) && request.resource.data.userId == userId;
+        
+        // Only the coach who created the log can update or delete it.
+        allow update, delete: if isCoach(resource.data.coachId);
+      }
+
+      /**
+       * @description Secure tournament history for a user. Only the user has access.
+       * @path /users/{userId}/tournamentHistory/{tournamentHistoryId}
+       */
+       match /tournamentHistory/{tournamentHistoryId} {
+          allow read, write: if isOwner(userId);
        }
     }
 
@@ -173,37 +202,5 @@ service cloud.firestore {
       allow get, list: if true;
       allow create, update, delete: if false; 
     }
-
-    /**
-     * @description Secure coaching logs for a user. Only the user and the coach have access.
-     * @path /users/{userId}/coachingLogs/{coachingLogId}
-     */
-    match /users/{userId}/coachingLogs/{coachingLogId} {
-      function isCoach(coachId) {
-        return request.auth.uid == coachId;
-      }
-      function isOwnerOrCoach() {
-        return isOwner(userId) || isCoach(resource.data.coachId);
-      }
-
-      allow get, list: if isOwnerOrCoach();
-      
-      // Only a coach can create a log.
-      allow create: if isCoach(request.resource.data.coachId) && request.resource.data.userId == userId;
-      
-      // Only the coach who created the log can update or delete it.
-      allow update, delete: if isCoach(resource.data.coachId);
-    }
-
-    /**
-     * @description Secure tournament history for a user. Only the user has access.
-     * @path /users/{userId}/tournamentHistory/{tournamentHistoryId}
-     */
-     match /users/{userId}/tournamentHistory/{tournamentHistoryId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isOwner(userId) && resource.data.userId == userId;
-        allow delete: if isOwner(userId);
-     }
   }
 }
