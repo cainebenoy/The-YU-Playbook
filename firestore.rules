@@ -41,20 +41,6 @@ service cloud.firestore {
       // This requires one read operation per protected request.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-    
-    function isCoachOfPlayer(playerId) {
-        // Check if the requesting user is a coach of any team the player is on.
-        // This is a complex rule and may be inefficient.
-        // A better approach might be to store a player's coach IDs directly on their user object if performance becomes an issue.
-        return exists(
-            /databases/$(database)/documents/teams?where(
-                'coachId', '==', request.auth.uid
-            ).where(
-                'roster', 'array-contains', playerId
-            )
-        );
-    }
-
 
     /**
      * @description Secure user profiles. Only the user can read/write their own profile.
@@ -73,8 +59,9 @@ service cloud.firestore {
          match /goals/{goalId} {
             // A user can read and write their own goals.
             allow write: if isOwner(userId);
-            // A user can read their own goals. A coach can read their player's goals.
-            allow get, list: if isOwner(userId) || isCoachOfPlayer(userId);
+            // A user can read their own goals.
+            // TODO: A coach should be able to read their player's goals, but this requires a data model change.
+            allow get, list: if isOwner(userId);
          }
     }
 
@@ -222,4 +209,6 @@ service cloud.firestore {
      }
   }
 }
+    
+
     
